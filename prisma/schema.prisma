@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  email          String           @unique
+  passwordHash   String           @map("password_hash")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  progress       Progress[]
+  lessonProgress LessonProgress[]
+
+  @@map("users")
+}
+
+model Module {
+  id               Int       @id @default(autoincrement())
+  title            String
+  description      String
+  orderIndex       Int       @unique @map("order_index")
+  estimatedMinutes Int       @default(30) @map("estimated_minutes")
+  language         String    @default("python")
+  isFoundational   Boolean   @default(false) @map("is_foundational")
+  lesson           Lesson?
+  problems         Problem[]
+
+  @@map("modules")
+}
+
+model Lesson {
+  id               Int              @id @default(autoincrement())
+  moduleId         Int              @unique @map("module_id")
+  title            String
+  estimatedMinutes Int              @default(5) @map("estimated_minutes")
+  concepts         String[]
+  module           Module           @relation(fields: [moduleId], references: [id])
+  sections         LessonSection[]
+  progress         LessonProgress[]
+
+  @@map("lessons")
+}
+
+model LessonSection {
+  id         Int         @id @default(autoincrement())
+  lessonId   Int         @map("lesson_id")
+  orderIndex Int         @map("order_index")
+  type       SectionType
+  title      String?
+  content    String
+  code       String?
+  lesson     Lesson      @relation(fields: [lessonId], references: [id])
+
+  @@unique([lessonId, orderIndex])
+  @@map("lesson_sections")
+}
+
+model LessonProgress {
+  id       Int      @id @default(autoincrement())
+  userId   Int      @map("user_id")
+  lessonId Int      @map("lesson_id")
+  readAt   DateTime @default(now()) @map("read_at")
+  user     User     @relation(fields: [userId], references: [id])
+  lesson   Lesson   @relation(fields: [lessonId], references: [id])
+
+  @@unique([userId, lessonId])
+  @@map("lesson_progress")
+}
+
+model Problem {
+  id          Int         @id @default(autoincrement())
+  title       String
+  description String
+  starterCode String      @map("starter_code")
+  difficulty  Difficulty
+  orderIndex  Int         @map("order_index")
+  moduleId    Int         @map("module_id")
+  type        ProblemType @default(STANDARD)
+  module      Module      @relation(fields: [moduleId], references: [id])
+  testCases   TestCase[]
+  hints       Hint[]
+  progress    Progress[]
+
+  @@unique([moduleId, orderIndex])
+  @@map("problems")
+}
+
+model TestCase {
+  id        Int     @id @default(autoincrement())
+  problemId Int     @map("problem_id")
+  inputData String  @map("input_data")
+  expected  String
+  isHidden  Boolean @default(true) @map("is_hidden")
+  problem   Problem @relation(fields: [problemId], references: [id])
+
+  @@map("test_cases")
+}
+
+model Hint {
+  id         Int     @id @default(autoincrement())
+  problemId  Int     @map("problem_id")
+  orderIndex Int     @map("order_index")
+  content    String
+  problem    Problem @relation(fields: [problemId], references: [id])
+
+  @@map("hints")
+}
+
+model Progress {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  problemId   Int       @map("problem_id")
+  passed      Boolean   @default(false)
+  score       Int       @default(0)
+  attempts    Int       @default(0)
+  hintsUsed   Int       @default(0) @map("hints_used")
+  completedAt DateTime? @map("completed_at")
+  user        User      @relation(fields: [userId], references: [id])
+  problem     Problem   @relation(fields: [problemId], references: [id])
+
+  @@unique([userId, problemId])
+  @@map("progress")
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum ProblemType {
+  STANDARD
+  DEBUG
+  CONCEPT_ONLY
+}
+
+enum SectionType {
+  why_you_need_this
+  the_basics
+  syntax_reference
+  worked_example
+  try_it_yourself
+  common_mistakes
+}
