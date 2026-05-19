@@ -6,7 +6,7 @@ export async function moduleRoutes(fastify: FastifyInstance) {
     '/modules',
     { preHandler: [fastify.authenticate] },
     async (req): Promise<ModuleWithProgress[]> => {
-      const userId = (req.user as { userId: number }).userId;
+      const { userId, isAdmin } = req.user as { userId: number; isAdmin?: boolean };
 
       const modules = await fastify.prisma.module.findMany({
         orderBy: { orderIndex: 'asc' },
@@ -54,7 +54,7 @@ export async function moduleRoutes(fastify: FastifyInstance) {
             ? false
             : allPassed;
 
-        const isUnlocked = mod.isFoundational || prevModuleComplete;
+        const isUnlocked = isAdmin || mod.isFoundational || prevModuleComplete;
 
         const result: ModuleWithProgress = {
           id: mod.id,

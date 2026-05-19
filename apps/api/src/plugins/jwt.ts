@@ -3,8 +3,8 @@ import fjwt from '@fastify/jwt';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
-    payload: { userId: number; email: string };
-    user: { userId: number; email: string };
+    payload: { userId: number; email: string; isAdmin: boolean };
+    user: { userId: number; email: string; isAdmin: boolean };
   }
 }
 

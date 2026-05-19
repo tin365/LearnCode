@@ -2,6 +2,7 @@ export interface User {
   id: number;
   email: string;
   createdAt: string;
+  isAdmin: boolean;
 }
 
 export interface Problem {

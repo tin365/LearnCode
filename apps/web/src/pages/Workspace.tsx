@@ -6,6 +6,7 @@ import type { Problem, Progress } from '@learncode/types';
 import { api } from '@/lib/api';
 import { useProblemStore } from '@/store/problemStore';
 import { useExecutionStore } from '@/store/executionStore';
+import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { LearningPanel } from '@/components/layout/LearningPanel';
 import { CodePanel } from '@/components/layout/CodePanel';
@@ -27,6 +28,7 @@ export function Workspace() {
   const setProblem = useProblemStore((s) => s.setProblem);
   const syncHintsFromProgress = useProblemStore((s) => s.syncHintsFromProgress);
   const resetExecution = useExecutionStore((s) => s.reset);
+  const isAdmin = useAuthStore((s) => s.user?.isAdmin ?? false);
 
   const { data: problems = [] } = useQuery({
     queryKey: ['problems'],
@@ -75,7 +77,7 @@ export function Workspace() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (!isUnlocked(problems, progress, problem)) {
+  if (!isAdmin && !isUnlocked(problems, progress, problem)) {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -21,13 +21,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       data: { email, passwordHash },
     });
 
-    const token = fastify.jwt.sign({ userId: user.id, email: user.email });
+    const token = fastify.jwt.sign({
+      userId: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    });
     const response: AuthResponse = {
       token,
       user: {
         id: user.id,
         email: user.email,
         createdAt: user.createdAt.toISOString(),
+        isAdmin: user.isAdmin,
       },
     };
     return response;
@@ -50,13 +55,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid email or password' });
     }
 
-    const token = fastify.jwt.sign({ userId: user.id, email: user.email });
+    const token = fastify.jwt.sign({
+      userId: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    });
     const response: AuthResponse = {
       token,
       user: {
         id: user.id,
         email: user.email,
         createdAt: user.createdAt.toISOString(),
+        isAdmin: user.isAdmin,
       },
     };
     return response;

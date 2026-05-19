@@ -12,12 +12,14 @@ import {
 import type { ModuleWithProgress, ProblemInModule } from '@learncode/types';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
 type ModuleItemProps = {
   module: ModuleWithProgress;
   isExpanded: boolean;
   onToggle: () => void;
   currentProblemId: number | null;
+  isAdmin: boolean;
 };
 
 type ProblemRowProps = {
@@ -31,6 +33,7 @@ type ProblemRowProps = {
 export function CollapsibleModuleSidebar() {
   const { id } = useParams();
   const currentProblemId = id ? Number(id) : null;
+  const isAdmin = useAuthStore((s) => s.user?.isAdmin ?? false);
   const [manuallyExpanded, setManuallyExpanded] = useState<Set<number>>(new Set());
 
   const { data: modules = [], isLoading } = useQuery({
@@ -66,13 +69,14 @@ export function CollapsibleModuleSidebar() {
           isExpanded={manuallyExpanded.has(mod.id) || mod.id === autoExpandModuleId}
           onToggle={() => toggle(mod.id)}
           currentProblemId={currentProblemId}
+          isAdmin={isAdmin}
         />
       ))}
     </nav>
   );
 }
 
-function ModuleItem({ module: mod, isExpanded, onToggle, currentProblemId }: ModuleItemProps) {
+function ModuleItem({ module: mod, isExpanded, onToggle, currentProblemId, isAdmin }: ModuleItemProps) {
   const navigate = useNavigate();
 
   const HeaderIcon = !mod.isUnlocked
@@ -139,7 +143,7 @@ function ModuleItem({ module: mod, isExpanded, onToggle, currentProblemId }: Mod
                 key={p.id}
                 problem={p}
                 moduleOrderIndex={mod.orderIndex}
-                isLocked={!prevPassed}
+                isLocked={!isAdmin && !prevPassed}
                 isCurrent={p.id === currentProblemId}
                 onSelect={() => navigate(`/workspace/${p.id}`)}
               />
