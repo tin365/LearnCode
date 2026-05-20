@@ -1,4 +1,25 @@
+import { config as loadDotenv } from 'dotenv';
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
+
+// Walk up from CWD looking for the monorepo .env. tsx/turbo both run
+// this file with CWD=apps/api/, where there is no .env — the real one
+// lives at the repo root. In production (Docker / Fly), no .env file
+// exists and we just rely on the runtime environment.
+function findRepoEnv(): string | null {
+  let dir = process.cwd();
+  for (let i = 0; i < 6; i++) {
+    const candidate = path.join(dir, '.env');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+const envFile = findRepoEnv();
+if (envFile) loadDotenv({ path: envFile });
 
 const envSchema = z
   .object({

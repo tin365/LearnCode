@@ -1,4 +1,3 @@
-import 'dotenv/config';
 import { env } from './config/env.js';
 import { initSentry } from './lib/sentry.js';
 import { buildServer } from './server.js';

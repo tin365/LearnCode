@@ -1,0 +1,29 @@
+**/node_modules
+**/dist
+**/.turbo
+**/.next
+**/.vite
+**/coverage
+**/.DS_Store
+**/*.log
+
+.git
+.github
+.vscode
+.idea
+.claude
+
+# Local-only env. Secrets in prod come from `fly secrets`, not the image.
+.env
+.env.local
+.env.*.local
+
+# Other apps not built into this image
+apps/web
+learncode-docs
+docs
+
+# Test stuff that bloats the image
+**/*.test.ts
+**/*.spec.ts
+apps/api/src/lib/known-good-solutions.test.ts
