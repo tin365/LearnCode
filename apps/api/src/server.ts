@@ -51,14 +51,18 @@ export async function buildServer() {
     if (isServerError) {
       request.log.error({ err: error, reqId: request.id }, 'Unhandled error');
       if (isSentryEnabled()) {
-        const authed = request.user as { userId?: number } | undefined;
+        const authed = request.user as
+          | { userId?: number; email?: string }
+          | undefined;
         Sentry.captureException(error, {
           tags: {
             requestId: request.id,
             method: request.method,
             route: request.routeOptions?.url ?? request.url,
           },
-          user: authed?.userId ? { id: String(authed.userId) } : undefined,
+          user: authed?.userId
+            ? { id: String(authed.userId), email: authed.email }
+            : undefined,
         });
       }
     } else {

@@ -13,15 +13,7 @@ export function initSentry(): void {
     environment: (import.meta.env.VITE_SENTRY_ENVIRONMENT as string | undefined) ?? import.meta.env.MODE,
     release: import.meta.env.VITE_SENTRY_RELEASE as string | undefined,
     tracesSampleRate: 0,
-    beforeSend(event) {
-      // Keep userId, drop email and IP.
-      if (event.user) {
-        delete event.user.email;
-        delete event.user.username;
-        delete event.user.ip_address;
-      }
-      return event;
-    },
+    sendDefaultPii: true,
   });
   initialized = true;
 }
@@ -32,7 +24,7 @@ export function isSentryEnabled(): boolean {
 
 export function identifyUser(user: User): void {
   if (!initialized) return;
-  Sentry.setUser({ id: String(user.id) });
+  Sentry.setUser({ id: String(user.id), email: user.email });
 }
 
 export function clearUser(): void {

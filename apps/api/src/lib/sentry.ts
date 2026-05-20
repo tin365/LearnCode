@@ -14,16 +14,9 @@ export function initSentry(): void {
     // Performance traces are off by default — they consume quota fast.
     // Flip on per-route later if specific endpoints need profiling.
     tracesSampleRate: 0,
-    beforeSend(event) {
-      // Keep userId for correlation, drop the rest to avoid leaking PII
-      // into the error tracker.
-      if (event.user) {
-        delete event.user.email;
-        delete event.user.username;
-        delete event.user.ip_address;
-      }
-      return event;
-    },
+    // Auto-capture IP and other request context. Email/userId is set
+    // explicitly via Sentry.setUser when a user is authenticated.
+    sendDefaultPii: true,
   });
   initialized = true;
 }
