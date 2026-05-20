@@ -8,8 +8,10 @@
 FROM node:22-slim AS base
 ENV PNPM_HOME=/root/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+# python3 is required at runtime: testRunner.ts spawns `python3` per
+# /progress/submit. node:22-slim doesn't ship it.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl ca-certificates dumb-init \
+ && apt-get install -y --no-install-recommends openssl ca-certificates dumb-init python3 \
  && rm -rf /var/lib/apt/lists/* \
  && corepack enable \
  && corepack prepare pnpm@9.14.2 --activate
@@ -31,7 +33,9 @@ FROM deps AS build
 WORKDIR /app
 COPY apps/api ./apps/api
 COPY packages ./packages
-RUN cd apps/api && pnpm exec prisma generate
+# Run from /app so Prisma finds prisma/schema.prisma at its default
+# relative path. Running from apps/api/ would force a --schema arg.
+RUN pnpm exec prisma generate
 
 # ---- Runtime image ----
 FROM base AS runtime
