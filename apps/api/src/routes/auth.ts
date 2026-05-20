@@ -127,7 +127,9 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       const { email, password } = parsed.data;
       const user = await fastify.prisma.user.findUnique({ where: { email } });
-      if (!user) {
+      // Generic error for both "no user" and "OAuth-only user with no password"
+      // to avoid disclosing account existence or auth method.
+      if (!user || !user.passwordHash) {
         return reply.status(401).send({ error: 'Invalid email or password' });
       }
 

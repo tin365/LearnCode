@@ -13,14 +13,43 @@ datasource db {
 model User {
   id             Int              @id @default(autoincrement())
   email          String           @unique
-  passwordHash   String           @map("password_hash")
+  passwordHash   String?          @map("password_hash")
   createdAt      DateTime         @default(now()) @map("created_at")
   isAdmin        Boolean          @default(false) @map("is_admin")
   progress       Progress[]
   lessonProgress LessonProgress[]
   refreshTokens  RefreshToken[]
+  oauthAccounts  OAuthAccount[]
+  passwordResets PasswordReset[]
 
   @@map("users")
+}
+
+model OAuthAccount {
+  id                Int      @id @default(autoincrement())
+  userId            Int      @map("user_id")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  email             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}
+
+model PasswordReset {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_resets")
 }
 
 model RefreshToken {
