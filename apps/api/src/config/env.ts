@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 // Walk up from CWD looking for the monorepo .env. tsx/turbo both run
 // this file with CWD=apps/api/, where there is no .env — the real one
-// lives at the repo root. In production (Docker / Fly), no .env file
+// lives at the repo root. In production (Docker / Render), no .env file
 // exists and we just rely on the runtime environment.
 function findRepoEnv(): string | null {
   let dir = process.cwd();

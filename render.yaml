@@ -1,0 +1,44 @@
+# Render Blueprint for the LearnCode API.
+# https://render.com/docs/blueprint-spec
+#
+# Connect this repo in the Render dashboard ("New + → Blueprint"), point at
+# this file, and Render provisions the service. Secrets are sync: false —
+# Render will prompt for each one on first deploy, and they live in the
+# dashboard (not in this file or git).
+#
+# External Postgres: paste the provider's connection string into DATABASE_URL.
+# WEB_ORIGINS: comma-separated browser origins allowed by CORS (e.g. the
+# Cloudflare Pages URL).
+services:
+  - type: web
+    name: learncode-api
+    runtime: docker
+    region: singapore
+    plan: starter
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    # Run prisma migrate against the live DB before traffic shifts to the new
+    # release. Render runs this in a one-shot copy of the new image.
+    preDeployCommand: pnpm exec prisma migrate deploy
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: COOKIE_SECRET
+        sync: false
+      - key: WEB_ORIGINS
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: SENTRY_ENVIRONMENT
+        sync: false
+      - key: SENTRY_RELEASE
+        sync: false
