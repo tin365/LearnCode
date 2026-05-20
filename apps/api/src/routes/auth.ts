@@ -215,4 +215,20 @@ export async function authRoutes(fastify: FastifyInstance) {
     clearRefreshCookie(reply);
     return reply.status(204).send();
   });
+
+  fastify.get(
+    '/auth/me',
+    { preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      const userId = (request.user as { userId: number }).userId;
+      const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return reply.status(401).send({ error: 'User no longer exists' });
+      return {
+        id: user.id,
+        email: user.email,
+        createdAt: user.createdAt.toISOString(),
+        isAdmin: user.isAdmin,
+      };
+    },
+  );
 }

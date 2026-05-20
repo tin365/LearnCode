@@ -3,31 +3,29 @@ import type { User } from '@learncode/types';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
+  accessToken: string | null;
   hydrated: boolean;
-  setAuth: (token: string, user: User) => void;
-  logout: () => void;
-  hydrate: () => void;
+  setSession: (accessToken: string, user: User) => void;
+  setAccessToken: (accessToken: string) => void;
+  setUser: (user: User) => void;
+  setHydrated: (hydrated: boolean) => void;
+  clearSession: () => void;
+}
+
+// Stale data from the old single-JWT storage scheme. Remove on module
+// load so old sessions never resurface after the auth refactor.
+if (typeof localStorage !== 'undefined') {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
+  accessToken: null,
   hydrated: false,
-  setAuth: (token, user) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ token, user });
-  },
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    set({ token: null, user: null });
-  },
-  hydrate: () => {
-    const token = localStorage.getItem('token');
-    const raw = localStorage.getItem('user');
-    const user = raw ? (JSON.parse(raw) as User) : null;
-    set({ token, user, hydrated: true });
-  },
+  setSession: (accessToken, user) => set({ accessToken, user }),
+  setAccessToken: (accessToken) => set({ accessToken }),
+  setUser: (user) => set({ user }),
+  setHydrated: (hydrated) => set({ hydrated }),
+  clearSession: () => set({ accessToken: null, user: null }),
 }));

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
+import { bootstrapSession } from '@/lib/api';
 import { AppShell } from '@/components/layout/AppShell';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
@@ -13,19 +14,19 @@ import { ModuleLesson } from '@/pages/ModuleLesson';
 const queryClient = new QueryClient();
 
 function PublicOnly({ children }: { children: React.ReactNode }) {
-  const token = useAuthStore((s) => s.token);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const hydrated = useAuthStore((s) => s.hydrated);
   if (!hydrated) return null;
-  if (token) return <Navigate to="/dashboard" replace />;
+  if (accessToken) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
 export default function App() {
-  const hydrate = useAuthStore((s) => s.hydrate);
+  const setHydrated = useAuthStore((s) => s.setHydrated);
 
   useEffect(() => {
-    hydrate();
-  }, [hydrate]);
+    bootstrapSession().finally(() => setHydrated(true));
+  }, [setHydrated]);
 
   return (
     <QueryClientProvider client={queryClient}>

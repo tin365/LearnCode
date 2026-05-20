@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { ModuleWithProgress } from '@learncode/types';
-import { api } from '@/lib/api';
+import { api, logout } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { CollapsibleModuleSidebar } from '@/components/modules/CollapsibleModuleSidebar';
@@ -16,7 +16,6 @@ function getInitials(email: string): string {
 
 export function Sidebar() {
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
 
   const { data: modules = [] } = useQuery({
     queryKey: ['modules'],
@@ -46,7 +45,17 @@ export function Sidebar() {
             {getInitials(email)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{getDisplayName(email)}</p>
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-medium">{getDisplayName(email)}</p>
+              {user?.isAdmin && (
+                <span
+                  title="Admin: bypasses all unlock checks"
+                  className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
+                >
+                  Admin
+                </span>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               {totals.completed} / {totals.total} solved
             </p>
@@ -57,7 +66,7 @@ export function Sidebar() {
       <CollapsibleModuleSidebar />
 
       <div className="border-t p-3">
-        <Button variant="outline" size="sm" className="w-full" onClick={logout}>
+        <Button variant="outline" size="sm" className="w-full" onClick={() => void logout()}>
           Log out
         </Button>
       </div>
