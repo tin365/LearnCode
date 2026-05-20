@@ -14,13 +14,17 @@ services:
     name: learncode-api
     runtime: docker
     region: singapore
-    plan: starter
+    # Free tier sleeps after ~15 min idle (cold start ~30s next request).
+    # Upgrade to `starter` ($7/mo) to keep the service always-on AND to
+    # enable preDeployCommand for automatic migrations on deploy.
+    plan: free
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /health
-    # Run prisma migrate against the live DB before traffic shifts to the new
-    # release. Render runs this in a one-shot copy of the new image.
-    preDeployCommand: pnpm exec prisma migrate deploy
+    # Migrations: free tier doesn't support preDeployCommand, so run
+    # `prisma migrate deploy` manually from your laptop after pushing a
+    # schema change:
+    #   DATABASE_URL='<render postgres url>' pnpm exec prisma migrate deploy
     envVars:
       - key: NODE_ENV
         value: production
