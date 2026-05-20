@@ -8,6 +8,15 @@ const envSchema = z
     JWT_EXPIRES_IN: z.string().default('7d'),
     API_PORT: z.coerce.number().int().positive().default(3001),
     API_HOST: z.string().default('0.0.0.0'),
+    WEB_ORIGINS: z
+      .string()
+      .default('http://localhost:5173')
+      .transform((s) =>
+        s
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean),
+      ),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') return;

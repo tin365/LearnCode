@@ -3,8 +3,15 @@ import bcrypt from 'bcrypt';
 import { registerSchema, loginSchema } from '@learncode/validators';
 import type { AuthResponse } from '@learncode/types';
 
+// Cost 12 ≈ ~250ms on a modern server. bcrypt.compare reads the cost from
+// the stored hash, so existing users with cost-10 hashes keep working.
+const BCRYPT_COST = 12;
+
 export async function authRoutes(fastify: FastifyInstance) {
-  fastify.post('/auth/register', async (request, reply) => {
+  fastify.post(
+    '/auth/register',
+    { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } },
+    async (request, reply) => {
     const parsed = registerSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten() });
@@ -16,7 +23,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(409).send({ error: 'Email already registered' });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
     const user = await fastify.prisma.user.create({
       data: { email, passwordHash },
     });
@@ -38,7 +45,10 @@ export async function authRoutes(fastify: FastifyInstance) {
     return response;
   });
 
-  fastify.post('/auth/login', async (request, reply) => {
+  fastify.post(
+    '/auth/login',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: parsed.error.flatten() });
