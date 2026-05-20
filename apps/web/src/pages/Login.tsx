@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import type { AuthResponse } from '@learncode/types';
 import { loginSchema } from '@learncode/validators';
 import { api } from '@/lib/api';
@@ -9,13 +9,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
 
 export function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const setSession = useAuthStore((s) => s.setSession);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const oauthError = searchParams.get('oauth_error');
+  const [error, setError] = useState(
+    oauthError ? 'Google sign in failed. Try again or use email and password.' : '',
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +47,12 @@ export function Login() {
           <CardTitle>Log in to LearnCode</CardTitle>
         </CardHeader>
         <CardContent>
+          <ContinueWithGoogle />
+          <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            or
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

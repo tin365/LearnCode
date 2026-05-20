@@ -10,6 +10,8 @@ import { Register } from '@/pages/Register';
 import { Dashboard } from '@/pages/Dashboard';
 import { Workspace } from '@/pages/Workspace';
 import { ModuleLesson } from '@/pages/ModuleLesson';
+import { OAuthComplete } from '@/pages/OAuthComplete';
+import { OAuthError } from '@/pages/OAuthError';
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,8 @@ export default function App() {
               </PublicOnly>
             }
           />
+          <Route path="/auth/oauth-complete" element={<OAuthComplete />} />
+          <Route path="/auth/oauth-error" element={<OAuthError />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workspace/:id" element={<Workspace />} />

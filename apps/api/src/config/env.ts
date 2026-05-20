@@ -41,6 +41,13 @@ const envSchema = z
     SENTRY_DSN: z.string().optional(),
     SENTRY_ENVIRONMENT: z.string().optional(),
     SENTRY_RELEASE: z.string().optional(),
+    // OAuth providers — all optional. If a provider's CLIENT_ID/SECRET pair
+    // isn't set, its routes simply aren't registered. API_BASE_URL is the
+    // public URL of THIS API (e.g. https://api.learncode.study), used to
+    // construct OAuth redirect URIs.
+    API_BASE_URL: z.string().url().optional(),
+    GOOGLE_CLIENT_ID: z.string().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') return;
