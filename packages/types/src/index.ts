@@ -49,8 +49,19 @@ export interface TestResult {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string;
+  /**
+   * Present only when the request identified itself as a desktop client
+   * (X-Client-Kind: desktop). For web, the refresh token is delivered as
+   * an HttpOnly cookie and is not exposed to JavaScript.
+   */
+  refreshToken?: string;
   user: User;
+}
+
+export interface RefreshResponse {
+  accessToken: string;
+  refreshToken?: string;
 }
 
 export interface ProblemInModule {

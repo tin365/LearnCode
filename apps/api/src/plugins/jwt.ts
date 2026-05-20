@@ -15,10 +15,14 @@ declare module 'fastify' {
   }
 }
 
+// Access-token lifetime. Refresh tokens take over for long sessions —
+// see lib/auth.ts.
+const ACCESS_TOKEN_TTL = '15m';
+
 export default fp(async (fastify) => {
   await fastify.register(fjwt, {
     secret: env.JWT_SECRET,
-    sign: { expiresIn: env.JWT_EXPIRES_IN },
+    sign: { expiresIn: ACCESS_TOKEN_TTL },
   });
 
   fastify.decorate('authenticate', async (request, reply) => {

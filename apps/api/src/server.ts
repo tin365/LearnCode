@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import prismaPlugin from './plugins/prisma.js';
 import corsPlugin from './plugins/cors.js';
 import jwtPlugin from './plugins/jwt.js';
+import cookiePlugin from './plugins/cookie.js';
 import { authRoutes } from './routes/auth.js';
 import { problemRoutes } from './routes/problems.js';
 import { progressRoutes } from './routes/progress.js';
@@ -30,6 +31,7 @@ export async function buildServer() {
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   });
   await fastify.register(prismaPlugin);
+  await fastify.register(cookiePlugin);
   await fastify.register(corsPlugin);
   await fastify.register(jwtPlugin);
   await fastify.register(rateLimit, {
