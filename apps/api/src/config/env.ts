@@ -17,6 +17,9 @@ const envSchema = z
           .map((o) => o.trim())
           .filter(Boolean),
       ),
+    SENTRY_DSN: z.string().optional(),
+    SENTRY_ENVIRONMENT: z.string().optional(),
+    SENTRY_RELEASE: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') return;

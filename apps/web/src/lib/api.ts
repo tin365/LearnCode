@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/store/authStore';
+import { clearUser, identifyUser } from '@/lib/sentry';
 import type { RefreshResponse, User } from '@learncode/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -105,6 +106,7 @@ export async function bootstrapSession(): Promise<void> {
   try {
     const user = await api.get<User>('/auth/me');
     useAuthStore.getState().setUser(user);
+    identifyUser(user);
   } catch {
     useAuthStore.getState().clearSession();
   }
@@ -118,4 +120,5 @@ export async function logout(): Promise<void> {
     // expired cookie) but we still want to log out locally.
   }
   useAuthStore.getState().clearSession();
+  clearUser();
 }

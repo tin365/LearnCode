@@ -15,4 +15,10 @@ export default defineConfig({
   worker: {
     format: 'es',
   },
+  build: {
+    // Generates source maps without referencing them in the bundle, so
+    // they aren't served publicly. Upload to Sentry at deploy time via
+    // @sentry/vite-plugin once a Sentry project + auth token exist.
+    sourcemap: 'hidden',
+  },
 });

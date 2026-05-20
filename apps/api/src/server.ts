@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
 import { env } from './config/env.js';
+import { Sentry, isSentryEnabled } from './lib/sentry.js';
 import prismaPlugin from './plugins/prisma.js';
 import corsPlugin from './plugins/cors.js';
 import jwtPlugin from './plugins/jwt.js';
@@ -49,6 +50,17 @@ export async function buildServer() {
 
     if (isServerError) {
       request.log.error({ err: error, reqId: request.id }, 'Unhandled error');
+      if (isSentryEnabled()) {
+        const authed = request.user as { userId?: number } | undefined;
+        Sentry.captureException(error, {
+          tags: {
+            requestId: request.id,
+            method: request.method,
+            route: request.routeOptions?.url ?? request.url,
+          },
+          user: authed?.userId ? { id: String(authed.userId) } : undefined,
+        });
+      }
     } else {
       request.log.warn({ err: error, reqId: request.id }, 'Client error');
     }

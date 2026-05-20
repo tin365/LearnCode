@@ -1,6 +1,10 @@
 import 'dotenv/config';
 import { env } from './config/env.js';
+import { initSentry } from './lib/sentry.js';
 import { buildServer } from './server.js';
+
+// Init Sentry BEFORE the server boots so any startup errors are captured.
+initSentry();
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 

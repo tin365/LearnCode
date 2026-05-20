@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { AuthResponse } from '@learncode/types';
 import { registerSchema } from '@learncode/validators';
 import { api } from '@/lib/api';
+import { identifyUser } from '@/lib/sentry';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ export function Register() {
     try {
       const res = await api.post<AuthResponse>('/auth/register', parsed.data);
       setSession(res.accessToken, res.user);
+      identifyUser(res.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');

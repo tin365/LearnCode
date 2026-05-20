@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { AuthResponse } from '@learncode/types';
 import { loginSchema } from '@learncode/validators';
 import { api } from '@/lib/api';
+import { identifyUser } from '@/lib/sentry';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ export function Login() {
     try {
       const res = await api.post<AuthResponse>('/auth/login', parsed.data);
       setSession(res.accessToken, res.user);
+      identifyUser(res.user);
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
