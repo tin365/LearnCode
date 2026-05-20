@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Prisma client is needed for the API's typecheck (imports
+      # @prisma/client types). No DB connection happens here.
+      - run: pnpm --filter @learncode/api exec prisma generate
+
+      - name: Typecheck API
+        run: pnpm --filter @learncode/api build
+
+      - name: Build web
+        run: pnpm --filter @learncode/web build
+
+      # Only the self-contained unit tests. The known-good-solutions
+      # integration test needs a seeded DB and is skipped in CI.
+      - name: Unit tests (API)
+        run: pnpm --filter @learncode/api exec vitest run src/lib/testRunner.test.ts

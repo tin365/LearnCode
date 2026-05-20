@@ -1,0 +1,4 @@
+# Cloudflare Pages: serve index.html for every unknown route so React
+# Router can render the requested view client-side. Without this, a
+# direct nav to /dashboard returns a 404 from CF Pages.
+/*  /index.html  200
