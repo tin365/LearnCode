@@ -10,6 +10,22 @@ import { PrismaClient, Difficulty } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Each MVP problem's home module, per docs/CURRICULUM.md. The `orderIndex`
+// on the problem object below is the LEGACY flat 1–10 numbering; the seed
+// translates it to the per-module orderIndex via this map.
+const PROBLEM_TO_MODULE: Record<string, { moduleOrderIndex: number; orderIndex: number }> = {
+  'Hello, World!':           { moduleOrderIndex: 1,  orderIndex: 1 },
+  'Sum Two Numbers':         { moduleOrderIndex: 10, orderIndex: 1 },
+  'Even or Odd':             { moduleOrderIndex: 5,  orderIndex: 1 },
+  'FizzBuzz (1 to N)':       { moduleOrderIndex: 6,  orderIndex: 4 },
+  'Find the Largest Number': { moduleOrderIndex: 7,  orderIndex: 2 },
+  'Reverse a String':        { moduleOrderIndex: 8,  orderIndex: 1 },
+  'Count Vowels':            { moduleOrderIndex: 8,  orderIndex: 2 },
+  'Fibonacci Sequence':      { moduleOrderIndex: 10, orderIndex: 4 },
+  'Check if Palindrome':     { moduleOrderIndex: 8,  orderIndex: 3 },
+  'List Deduplication':      { moduleOrderIndex: 7,  orderIndex: 5 },
+};
+
 const problems = [
   {
     orderIndex: 1,
@@ -619,21 +635,37 @@ Both the loop approach and this one-liner are correct. The loop approach shows y
 ];
 
 async function main() {
-  console.log('🌱 Seeding database...\n');
+  console.log('🌱 Seeding MVP problems...\n');
 
-  await prisma.progress.deleteMany();
-  await prisma.hint.deleteMany();
-  await prisma.testCase.deleteMany();
-  await prisma.problem.deleteMany();
-
-  console.log('🗑️  Cleared existing problem data\n');
+  // Pre-load modules so we don't query per-problem.
+  const modules = await prisma.module.findMany();
+  const modulesByOrder = new Map(modules.map((m) => [m.orderIndex, m]));
 
   for (const problemData of problems) {
-    const { hints, testCases, ...problem } = problemData;
+    const { hints, testCases, orderIndex: _legacyIndex, ...rest } = problemData;
+    const mapping = PROBLEM_TO_MODULE[problemData.title];
+    if (!mapping) {
+      console.warn(`⚠  No module mapping for "${problemData.title}" — skipping`);
+      continue;
+    }
+    const mod = modulesByOrder.get(mapping.moduleOrderIndex);
+    if (!mod) {
+      throw new Error(
+        `Module M${mapping.moduleOrderIndex} not found. Run seed-modules.ts first.`,
+      );
+    }
+
+    const existing = await prisma.problem.findFirst({ where: { title: problemData.title } });
+    if (existing) {
+      console.log(`= ${problemData.title} already exists — skipping`);
+      continue;
+    }
 
     const created = await prisma.problem.create({
       data: {
-        ...problem,
+        ...rest,
+        orderIndex: mapping.orderIndex,
+        moduleId: mod.id,
         hints: { create: hints },
         testCases: { create: testCases },
       },
@@ -644,14 +676,13 @@ async function main() {
     const hiddenCount = created.testCases.filter((tc) => tc.isHidden).length;
 
     console.log(
-      `✅ [${String(created.orderIndex).padStart(2, '0')}] ${created.title.padEnd(30)} ` +
-        `${created.difficulty.padEnd(8)} ` +
-        `${created.hints.length} hints   ` +
+      `+ M${mapping.moduleOrderIndex}.${mapping.orderIndex} ${created.title.padEnd(28)} ` +
+        `${created.difficulty.padEnd(7)} ${created.hints.length} hints, ` +
         `${visibleCount} visible / ${hiddenCount} hidden tests`,
     );
   }
 
-  console.log(`\n🎉 Seeded ${problems.length} problems successfully.`);
+  console.log(`\n🎉 Seed run complete.`);
 }
 
 main()

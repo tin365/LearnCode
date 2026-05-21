@@ -57,16 +57,10 @@ async function main() {
     console.log(`  ✓ "${title}" → M${mapping.moduleOrderIndex} (orderIndex ${mapping.newOrderIndex}) [${updated.count} row]`);
   }
 
-  console.log('\nChecking for orphan problems...');
-  const orphans = await prisma.problem.findMany({
-    where: { moduleId: null },
-    select: { id: true, title: true },
-  });
-  if (orphans.length > 0) {
-    console.error('  ✗ Orphan problems found:', orphans);
-    throw new Error('Some problems were not assigned to modules — fix before continuing');
-  }
-  console.log('  ✓ All problems assigned');
+  // Orphan check removed: post-migration `problems.module_id` is NOT NULL,
+  // so a moduleId: null filter is a schema-level type error. The composite
+  // unique (moduleId, orderIndex) and the FK constraint make orphans
+  // impossible at the DB level.
 
   console.log('\n✅ Data migration complete.');
 }
