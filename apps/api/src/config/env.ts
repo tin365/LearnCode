@@ -48,6 +48,8 @@ const envSchema = z
     API_BASE_URL: z.string().url().optional(),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
+    FACEBOOK_CLIENT_ID: z.string().optional(),
+    FACEBOOK_CLIENT_SECRET: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') return;

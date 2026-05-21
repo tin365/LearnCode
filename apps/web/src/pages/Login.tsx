@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
+import { ContinueWithFacebook } from '@/components/auth/ContinueWithFacebook';
 
 export function Login() {
   const navigate = useNavigate();
@@ -47,7 +48,10 @@ export function Login() {
           <CardTitle>Log in to LearnCode</CardTitle>
         </CardHeader>
         <CardContent>
-          <ContinueWithGoogle />
+          <div className="space-y-2">
+            <ContinueWithGoogle />
+            <ContinueWithFacebook />
+          </div>
           <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
             <span className="h-px flex-1 bg-slate-200" />
             or
