@@ -12,6 +12,8 @@ import { Workspace } from '@/pages/Workspace';
 import { ModuleLesson } from '@/pages/ModuleLesson';
 import { OAuthComplete } from '@/pages/OAuthComplete';
 import { OAuthError } from '@/pages/OAuthError';
+import { ForgotPassword } from '@/pages/ForgotPassword';
+import { ResetPassword } from '@/pages/ResetPassword';
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,8 @@ export default function App() {
           />
           <Route path="/auth/oauth-complete" element={<OAuthComplete />} />
           <Route path="/auth/oauth-error" element={<OAuthError />} />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/workspace/:id" element={<Workspace />} />

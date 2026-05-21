@@ -19,9 +19,11 @@ export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const oauthError = searchParams.get('oauth_error');
+  const passwordReset = searchParams.get('password_reset');
   const [error, setError] = useState(
     oauthError ? 'Google sign in failed. Try again or use email and password.' : '',
   );
+  const notice = passwordReset === 'ok' ? 'Password updated. Log in with your new password.' : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -63,9 +65,18 @@ export function Login() {
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-baseline justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/auth/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
+            {notice && <p className="text-sm text-emerald-700">{notice}</p>}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full">
               Log in

@@ -19,6 +19,17 @@ export const hintRevealSchema = z.object({
   problemId: z.number().int().positive(),
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email(),
+});
+
+export const passwordResetConfirmSchema = z.object({
+  token: z.string().min(1),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type SubmitProgressInput = z.infer<typeof submitProgressSchema>;
+export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetConfirmInput = z.infer<typeof passwordResetConfirmSchema>;

@@ -50,6 +50,11 @@ const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     FACEBOOK_CLIENT_ID: z.string().optional(),
     FACEBOOK_CLIENT_SECRET: z.string().optional(),
+    // Transactional email — used for password reset. If RESEND_API_KEY is
+    // unset, the reset link is logged to the API console instead of sent.
+    // Useful in dev; required for production password-reset.
+    RESEND_API_KEY: z.string().optional(),
+    EMAIL_FROM: z.string().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV !== 'production') return;

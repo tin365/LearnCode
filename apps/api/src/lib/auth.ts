@@ -135,3 +135,17 @@ export async function revokeByPlaintext(
   });
   return result.count > 0;
 }
+
+// Used after a password reset: invalidate every active session for this
+// user across all devices, so a stolen device or shared browser can't keep
+// the old session after the password changes.
+export async function revokeAllForUser(
+  prisma: PrismaClient,
+  userId: number,
+): Promise<number> {
+  const result = await prisma.refreshToken.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+  return result.count;
+}
