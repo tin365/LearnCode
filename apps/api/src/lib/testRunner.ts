@@ -136,7 +136,11 @@ try {
   process.exit(1);
 }
 `;
-  const proc = spawnSync('node', ['-e', script], subprocessSpawnOptions);
+  // --max-old-space-size caps the V8 heap so a runaway user program
+  // (e.g., `let a = []; while (true) a.push(1);`) hits an OOM and
+  // dies cleanly instead of pressuring the API container's RAM.
+  // 128 MB is plenty for any educational program.
+  const proc = spawnSync('node', ['--max-old-space-size=128', '-e', script], subprocessSpawnOptions);
 
   if (proc.error) {
     return { ok: false, value: '', error: proc.error.message };
@@ -148,7 +152,7 @@ try {
 }
 
 function runJsCodeOnly(userCode: string): { output: string; error: string | null } {
-  const proc = spawnSync('node', ['-e', userCode], subprocessSpawnOptions);
+  const proc = spawnSync('node', ['--max-old-space-size=128', '-e', userCode], subprocessSpawnOptions);
 
   if (proc.status !== 0) {
     return { output: proc.stdout || '', error: (proc.stderr || 'Execution failed').trim() };
@@ -194,7 +198,9 @@ function runJavaSnippet(userCode: string, expression: string): { ok: boolean; va
       return { ok: false, value: '', error: (compile.stderr || 'Compilation failed').trim() };
     }
 
-    const run = spawnSync('java', ['-cp', dir, 'Main'], { ...subprocessSpawnOptions, cwd: dir });
+    // -Xmx caps the JVM heap; same OOM-as-clean-exit rationale as Node's
+    // --max-old-space-size. 256 MB is generous for tiny student programs.
+    const run = spawnSync('java', ['-Xmx256m', '-cp', dir, 'Main'], { ...subprocessSpawnOptions, cwd: dir });
     if (run.error) return { ok: false, value: '', error: run.error.message };
     if (run.status !== 0) {
       return { ok: false, value: '', error: (run.stderr || run.stdout || 'Execution failed').trim() };
