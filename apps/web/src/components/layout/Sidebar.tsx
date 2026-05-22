@@ -36,8 +36,13 @@ export function Sidebar() {
   return (
     <aside className="flex h-full flex-col border-r bg-slate-50">
       <div className="border-b p-4">
-        <Link to="/dashboard" className="text-lg font-bold text-primary">
-          LearnCode
+        <Link to="/dashboard" className="flex items-center gap-2">
+          <img
+            src="/learncode.svg"
+            alt="LearnCode"
+            className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200"
+          />
+          <span className="text-lg font-bold text-primary">LearnCode</span>
         </Link>
 
         <div className="mt-3 flex items-center gap-3">
