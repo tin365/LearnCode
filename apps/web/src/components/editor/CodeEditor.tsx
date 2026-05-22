@@ -6,9 +6,11 @@ interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
+  /** Monaco language id — defaults to 'python' for back-compat. */
+  language?: 'python' | 'javascript';
 }
 
-export function CodeEditor({ value, onChange, readOnly }: CodeEditorProps) {
+export function CodeEditor({ value, onChange, readOnly, language = 'python' }: CodeEditorProps) {
   const editorRef = useRef<{ layout: () => void } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +35,10 @@ export function CodeEditor({ value, onChange, readOnly }: CodeEditorProps) {
     <div ref={containerRef} className="h-full w-full min-h-0">
       <Editor
         height="100%"
-        defaultLanguage="python"
+        // Use `language` (not `defaultLanguage`) so Monaco re-tokenises
+        // when the user navigates between a Python and a JS problem
+        // without unmounting the editor.
+        language={language}
         theme="vs"
         value={value}
         onChange={(v) => onChange(v ?? '')}

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { Problem, Hint, HintsState } from '@learncode/types';
+import { asLanguage } from '../lib/testRunner.js';
 
 function mapProblem(
   p: {
@@ -13,6 +14,7 @@ function mapProblem(
     type: string;
     hints?: { id: number; orderIndex: number; content: string }[];
     testCases?: { inputData: string; expected: string }[];
+    module?: { language: string };
   },
   includeHints: boolean,
 ): Problem {
@@ -24,6 +26,7 @@ function mapProblem(
     difficulty: p.difficulty as Problem['difficulty'],
     orderIndex: p.orderIndex,
     moduleId: p.moduleId,
+    language: asLanguage(p.module?.language),
     type: p.type as Problem['type'],
     hints: includeHints
       ? (p.hints ?? []).map(
@@ -42,6 +45,7 @@ export async function problemRoutes(fastify: FastifyInstance) {
   fastify.get('/problems', { preHandler: [fastify.authenticate] }, async () => {
     const problems = await fastify.prisma.problem.findMany({
       orderBy: { orderIndex: 'asc' },
+      include: { module: { select: { language: true } } },
     });
     return problems.map((p) => mapProblem(p, false));
   });
@@ -63,6 +67,7 @@ export async function problemRoutes(fastify: FastifyInstance) {
             where: { isHidden: false },
             select: { id: true, inputData: true, expected: true, isHidden: true },
           },
+          module: { select: { language: true } },
         },
       });
 

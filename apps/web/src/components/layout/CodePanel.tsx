@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { RunResult } from '@learncode/types';
 import { api } from '@/lib/api';
 import { ExecutionStoppedError, runPythonCode, terminateWorker } from '@/lib/pyodide';
+import { runJsCode, terminateJsWorker } from '@/lib/jsRuntime';
 import { useProblemStore } from '@/store/problemStore';
 import { useExecutionStore } from '@/store/executionStore';
 import { CodeEditor } from '@/components/editor/CodeEditor';
@@ -28,6 +29,7 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
 
   const code = useProblemStore((s) => s.code);
   const setCode = useProblemStore((s) => s.setCode);
+  const language = useProblemStore((s) => s.current?.language ?? 'python');
   const running = useExecutionStore((s) => s.running);
   const output = useExecutionStore((s) => s.output);
   const lastResult = useExecutionStore((s) => s.lastResult);
@@ -83,13 +85,22 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
     setSuccessScore(null);
     setSubmitError(null);
     setRunStderr(null);
-    setStatusMessage(pyodideReady ? 'Running code locally…' : 'Setting up Python environment…');
+    const isJs = language === 'javascript';
+    setStatusMessage(
+      isJs
+        ? 'Running code locally…'
+        : pyodideReady
+          ? 'Running code locally…'
+          : 'Setting up Python environment…',
+    );
     // Split the stdin textarea into lines, dropping a single trailing empty
     // line (a typical artifact of pressing Enter after the last value).
     const stdinLines = stdinText.replace(/\n$/, '').split('\n');
     try {
-      const { output: out, error, stderr } = await runPythonCode(code, stdinLines);
-      setPyodideReady(true);
+      const { output: out, error, stderr } = isJs
+        ? await runJsCode(code)
+        : await runPythonCode(code, stdinLines);
+      if (!isJs) setPyodideReady(true);
       if (error) {
         // Worker-level fatal (Pyodide failed to load, etc.) — show in error pane.
         setRunStderr(error);
@@ -120,9 +131,11 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   function handleStop() {
     // Set the final state synchronously so the UI flips immediately,
     // not on the next microtask when the rejected Promise propagates.
-    // terminateWorker still rejects the in-flight request, but
-    // handleRun's catch is a no-op now that we've already done the work.
+    // Terminate both runtimes — cheap if either isn't alive — so users
+    // who flip between Python and JS problems can't end up with a
+    // dangling worker mid-run.
     terminateWorker();
+    terminateJsWorker();
     setPyodideReady(false);
     setRunning(false);
     setResult(null);
@@ -210,7 +223,7 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
 
       <PanelGroup direction="vertical" className="min-h-0 flex-1">
         <Panel defaultSize={65} minSize={30}>
-          <CodeEditor value={code} onChange={setCode} />
+          <CodeEditor value={code} onChange={setCode} language={language} />
         </Panel>
         <PanelResizeHandle className="group relative flex h-3 items-center justify-center bg-border hover:bg-primary/30 md:h-1">
           {/* Drag indicator — only visible on mobile where the handle is thick. */}

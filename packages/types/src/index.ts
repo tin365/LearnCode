@@ -5,6 +5,8 @@ export interface User {
   isAdmin: boolean;
 }
 
+export type ProblemLanguage = 'python' | 'javascript';
+
 export interface Problem {
   id: number;
   title: string;
@@ -13,6 +15,8 @@ export interface Problem {
   difficulty: 'easy' | 'medium' | 'hard';
   orderIndex: number;
   moduleId: number;
+  /** Mirrors Module.language so the frontend can pick a runtime + syntax. */
+  language: ProblemLanguage;
   type: 'STANDARD' | 'DEBUG' | 'CONCEPT_ONLY';
   hints: Hint[];
   testCases?: { inputData: string; expected: string }[];
