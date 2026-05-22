@@ -227,6 +227,82 @@ function runJavaCodeOnly(userCode: string): { output: string; error: string | nu
 }
 
 // ---------------------------------------------------------------------------
+// Rust
+// ---------------------------------------------------------------------------
+// Per the brief, user code is always `fn name(...) -> T { ... }` and
+// test inputData calls `name(args)`. Expected values are Debug
+// formatted: strings are wrapped in quotes, ints/bools printed raw,
+// matching what `println!("{:?}", value)` produces.
+
+function runRustSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
+  const dir = mkdtempSync(join(tmpdir(), 'lc-rust-'));
+  try {
+    const source = `${userCode}
+
+fn main() {
+    let __lc_result = ${expression};
+    print!("{:?}", __lc_result);
+}
+`;
+    writeFileSync(join(dir, 'main.rs'), source);
+
+    const compile = spawnSync(
+      'rustc',
+      // --edition 2021 keeps Rust features predictable across rustc versions;
+      // -O off because we want fast compile, not fast runtime.
+      ['--edition', '2021', '-o', join(dir, 'main'), join(dir, 'main.rs')],
+      { ...compileSpawnOptions, cwd: dir },
+    );
+    if (compile.error) return { ok: false, value: '', error: compile.error.message };
+    if (compile.status !== 0) {
+      return { ok: false, value: '', error: (compile.stderr || 'Compilation failed').trim() };
+    }
+
+    const run = spawnSync(join(dir, 'main'), [], { ...subprocessSpawnOptions, cwd: dir });
+    if (run.error) return { ok: false, value: '', error: run.error.message };
+    if (run.status !== 0) {
+      // Rust panics print to stderr by default.
+      return { ok: false, value: '', error: (run.stderr || run.stdout || 'Execution failed').trim() };
+    }
+    return { ok: true, value: run.stdout.trim() };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function runRustCodeOnly(userCode: string): { output: string; error: string | null } {
+  // Try to compile the user code alone. If they didn't define main(),
+  // we wrap in an empty main so rustc has an entry point. This is
+  // primarily a "does your code parse" check.
+  const dir = mkdtempSync(join(tmpdir(), 'lc-rust-'));
+  try {
+    const hasMain = /\bfn\s+main\s*\(/.test(userCode);
+    const source = hasMain ? userCode : `${userCode}\n\nfn main() {}\n`;
+    writeFileSync(join(dir, 'main.rs'), source);
+    const compile = spawnSync(
+      'rustc',
+      ['--edition', '2021', '-o', join(dir, 'main'), join(dir, 'main.rs')],
+      { ...compileSpawnOptions, cwd: dir },
+    );
+    if (compile.status !== 0) {
+      return { output: '', error: (compile.stderr || 'Compilation failed').trim() };
+    }
+    if (!hasMain) {
+      // User didn't define main, so there's nothing to run. Skip
+      // execution and report a clean compile.
+      return { output: '', error: null };
+    }
+    const run = spawnSync(join(dir, 'main'), [], { ...subprocessSpawnOptions, cwd: dir });
+    if (run.status !== 0) {
+      return { output: run.stdout || '', error: (run.stderr || 'Execution failed').trim() };
+    }
+    return { output: (run.stdout || '').trim(), error: null };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
 
@@ -237,8 +313,7 @@ function runSnippet(language: Language, userCode: string, expression: string) {
     case 'java':
       return runJavaSnippet(userCode, expression);
     case 'rust':
-      // Stub until phase 3 wires the Rust runtime.
-      return { ok: false, value: '', error: 'rust grading not yet implemented' };
+      return runRustSnippet(userCode, expression);
     case 'python':
     default:
       return runPythonSnippet(userCode, expression);
@@ -252,7 +327,7 @@ function runCodeOnly(language: Language, userCode: string) {
     case 'java':
       return runJavaCodeOnly(userCode);
     case 'rust':
-      return { output: '', error: 'rust execution not yet implemented' };
+      return runRustCodeOnly(userCode);
     case 'python':
     default:
       return runPythonCodeOnly(userCode);

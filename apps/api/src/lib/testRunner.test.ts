@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import { calculateScore, runTests } from './testRunner.js';
+
+// Skip the Rust test block on machines without rustc (e.g. local dev
+// without the Rust toolchain installed). CI / the Render Docker image
+// have rustc, so these tests run there.
+const hasRustc = spawnSync('rustc', ['--version'], { encoding: 'utf-8' }).status === 0;
 
 describe('calculateScore', () => {
   it('returns 0 when not passed', () => {
@@ -68,6 +74,56 @@ describe('runTests', () => {
     }
   });
 });
+
+describe.skipIf(!hasRustc)('runTests — Rust', () => {
+  it('passes a simple fn-return test', () => {
+    const code = `fn hello_world() -> String {
+    "Hello, World!".to_string()
+}`;
+    const result = runTests(
+      code,
+      [{ inputData: 'hello_world()', expected: '"Hello, World!"', isHidden: false }],
+      'rust',
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('formats .len() as a raw integer (Debug)', () => {
+    const code = `fn hello_world() -> String { "Hello, World!".to_string() }`;
+    const result = runTests(
+      code,
+      [{ inputData: 'hello_world().len()', expected: '13', isHidden: false }],
+      'rust',
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('reports a compile error clearly', () => {
+    const code = `fn broken() -> String {
+    "missing semicolon"to_string()
+}`;
+    const result = runTests(
+      code,
+      [{ inputData: 'broken()', expected: 'x', isHidden: false }],
+      'rust',
+    );
+    expect(result.passed).toBe(false);
+    expect(result.testResults[0].actual.toLowerCase()).toMatch(/error|expected/);
+  });
+
+  it('captures a runtime panic', () => {
+    const code = `fn boom() -> i32 {
+    panic!("nope");
+}`;
+    const result = runTests(
+      code,
+      [{ inputData: 'boom()', expected: '0', isHidden: false }],
+      'rust',
+    );
+    expect(result.passed).toBe(false);
+    expect(result.testResults[0].actual.toLowerCase()).toMatch(/panic|nope/);
+  });
+}, 60_000);
 
 describe('runTests — Java', () => {
   it('passes a simple Solution.method test', () => {

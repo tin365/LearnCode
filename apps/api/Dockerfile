@@ -9,15 +9,18 @@ FROM node:22-slim AS base
 ENV PNPM_HOME=/root/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 # Interpreters/compilers used by testRunner.ts to grade submissions:
-#   python3          — Python problems
-#   default-jdk-headless  — Java problems (javac + java)
-# JavaScript runs via the already-present `node`. Rust support follows
-# in a later phase (adds rustc, which is ~250 MB on its own).
+#   python3              — Python problems (interpreter)
+#   default-jdk-headless — Java problems (javac + java)
+#   rustc                — Rust problems (apt's rustc, no rustup)
+# JavaScript runs via the already-present `node`. Apt's rustc is older
+# than rustup but lighter and matches Debian's update cadence; the
+# learner programs are small enough not to need the bleeding edge.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       openssl ca-certificates dumb-init \
       python3 \
       default-jdk-headless \
+      rustc \
  && rm -rf /var/lib/apt/lists/* \
  && corepack enable \
  && corepack prepare pnpm@9.14.2 --activate
