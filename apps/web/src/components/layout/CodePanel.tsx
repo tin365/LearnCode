@@ -31,6 +31,8 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   const code = useProblemStore((s) => s.code);
   const setCode = useProblemStore((s) => s.setCode);
   const language = useProblemStore((s) => s.current?.language ?? 'python');
+  const starterCode = useProblemStore((s) => s.current?.starterCode ?? '');
+  const resetToStarter = useProblemStore((s) => s.resetToStarter);
   const running = useExecutionStore((s) => s.running);
   const output = useExecutionStore((s) => s.output);
   const lastResult = useExecutionStore((s) => s.lastResult);
@@ -197,7 +199,7 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
           <button
             onClick={handleRun}
             disabled={isBusy}
-            title="Run your code in the terminal — no scoring"
+            title="Run your code in the terminal — no scoring  (⌘↵ / Ctrl+Enter)"
             className="flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
           >
             <Play className="h-4 w-4" />
@@ -207,7 +209,7 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
         <button
           onClick={handleSubmit}
           disabled={isBusy}
-          title="Check against all tests and earn your score"
+          title="Check against all tests and earn your score  (⌘⇧↵ / Ctrl+Shift+Enter)"
           className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           {isSubmitting ? (
@@ -217,6 +219,21 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
           )}
           Submit
         </button>
+        {code !== starterCode && starterCode !== '' && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Discard your changes and reset to the starter code?')) {
+                resetToStarter();
+              }
+            }}
+            disabled={isBusy}
+            title="Throw away your draft and start over from the problem's starter code"
+            className="text-xs text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline disabled:opacity-50"
+          >
+            Reset
+          </button>
+        )}
         <span
           className={cn(
             'ml-auto text-xs',
@@ -233,7 +250,17 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
 
       <PanelGroup direction="vertical" className="min-h-0 flex-1">
         <Panel defaultSize={65} minSize={30}>
-          <CodeEditor value={code} onChange={setCode} language={language} />
+          <CodeEditor
+            value={code}
+            onChange={setCode}
+            language={language}
+            onRun={() => {
+              if (!isBusy) handleRun();
+            }}
+            onSubmit={() => {
+              if (!isBusy) handleSubmit();
+            }}
+          />
         </Panel>
         <PanelResizeHandle className="group relative flex h-3 items-center justify-center bg-border hover:bg-primary/30 md:h-1">
           {/* Drag indicator — only visible on mobile where the handle is thick. */}

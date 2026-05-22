@@ -8,15 +8,50 @@ interface CodeEditorProps {
   readOnly?: boolean;
   /** Monaco language id — defaults to 'python' for back-compat. */
   language?: 'python' | 'javascript' | 'java' | 'rust';
+  /** Bound to Cmd/Ctrl+Enter inside the editor. */
+  onRun?: () => void;
+  /** Bound to Cmd/Ctrl+Shift+Enter inside the editor. */
+  onSubmit?: () => void;
 }
 
-export function CodeEditor({ value, onChange, readOnly, language = 'python' }: CodeEditorProps) {
-  const editorRef = useRef<{ layout: () => void } | null>(null);
+// Minimal subset of the Monaco editor instance we actually call. Avoids
+// importing monaco-editor types into the bundle.
+interface MonacoEditor {
+  layout: () => void;
+  addCommand: (keybinding: number, handler: () => void) => void;
+}
+
+// Minimal subset of the Monaco namespace.
+interface MonacoNs {
+  KeyMod: { CtrlCmd: number; Shift: number };
+  KeyCode: { Enter: number };
+}
+
+export function CodeEditor({
+  value,
+  onChange,
+  readOnly,
+  language = 'python',
+  onRun,
+  onSubmit,
+}: CodeEditorProps) {
+  const editorRef = useRef<MonacoEditor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 16px on mobile so iOS Safari doesn't auto-zoom on focus; 14px on
   // desktop to keep the editor compact.
   const isMobile = useMediaQuery(MOBILE_QUERY);
+
+  // Keep refs to the latest callbacks so the Monaco commands (registered
+  // once on mount) always invoke the freshest closures — without this,
+  // pressing Cmd+Enter would call the handler from the first render
+  // forever.
+  const onRunRef = useRef(onRun);
+  const onSubmitRef = useRef(onSubmit);
+  useEffect(() => {
+    onRunRef.current = onRun;
+    onSubmitRef.current = onSubmit;
+  }, [onRun, onSubmit]);
 
   useEffect(() => {
     const observer = new ResizeObserver(() => {
@@ -26,9 +61,19 @@ export function CodeEditor({ value, onChange, readOnly, language = 'python' }: C
     return () => observer.disconnect();
   }, []);
 
-  function handleEditorDidMount(editor: { layout: () => void }) {
+  function handleEditorDidMount(editor: MonacoEditor, monaco: MonacoNs) {
     editorRef.current = editor;
     editor.layout();
+    // CtrlCmd resolves to Cmd on Mac and Ctrl elsewhere automatically.
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+      onRunRef.current?.();
+    });
+    editor.addCommand(
+      monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.Enter,
+      () => {
+        onSubmitRef.current?.();
+      },
+    );
   }
 
   return (
