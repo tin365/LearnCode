@@ -80,6 +80,18 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   });
 
   async function handleRun() {
+    // Java and Rust have no in-browser runtime — they're compiled.
+    // Until phase 4 wires up a server-side /run endpoint for them,
+    // tell the user explicitly rather than fail mysteriously.
+    if (language === 'java' || language === 'rust') {
+      setOutput('');
+      setRunStderr(
+        `${language === 'java' ? 'Java' : 'Rust'} runs on the server — click Submit to compile and test against the problem's test cases.`,
+      );
+      setStatusMessage('Server-only language');
+      return;
+    }
+
     setRunning(true);
     setResult(null);
     setSuccessScore(null);

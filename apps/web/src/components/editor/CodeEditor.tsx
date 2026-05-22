@@ -7,7 +7,7 @@ interface CodeEditorProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   /** Monaco language id — defaults to 'python' for back-compat. */
-  language?: 'python' | 'javascript';
+  language?: 'python' | 'javascript' | 'java' | 'rust';
 }
 
 export function CodeEditor({ value, onChange, readOnly, language = 'python' }: CodeEditorProps) {

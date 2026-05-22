@@ -84,8 +84,11 @@ export function Dashboard() {
   const availableLanguages = useMemo<ProblemLanguage[]>(() => {
     const set = new Set<ProblemLanguage>();
     for (const m of allModules) set.add(m.language);
-    // Stable order with Python first since it's the default.
-    return ['python', 'javascript'].filter((l) => set.has(l as ProblemLanguage)) as ProblemLanguage[];
+    // Stable display order: Python first since it's the historical
+    // default; the others alphabetical-ish but with JS before Java
+    // since that's the order we shipped them.
+    const order: ProblemLanguage[] = ['python', 'javascript', 'java', 'rust'];
+    return order.filter((l) => set.has(l));
   }, [allModules]);
 
   // Filter the visible curriculum down to the picked language. If the

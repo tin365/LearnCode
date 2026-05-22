@@ -3,9 +3,12 @@ import type { ProblemLanguage } from '@learncode/types';
 
 const STORAGE_KEY = 'lc:language';
 
+const VALID = new Set<ProblemLanguage>(['python', 'javascript', 'java', 'rust']);
+
 function read(): ProblemLanguage {
   if (typeof window === 'undefined') return 'python';
-  return window.localStorage.getItem(STORAGE_KEY) === 'javascript' ? 'javascript' : 'python';
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored && VALID.has(stored as ProblemLanguage) ? (stored as ProblemLanguage) : 'python';
 }
 
 // Returns the user's currently-selected curriculum language and a
@@ -17,7 +20,8 @@ export function useLanguagePref(): [ProblemLanguage, (next: ProblemLanguage) => 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
       if (e.key !== STORAGE_KEY) return;
-      setValue(e.newValue === 'javascript' ? 'javascript' : 'python');
+      const next = e.newValue;
+      setValue(next && VALID.has(next as ProblemLanguage) ? (next as ProblemLanguage) : 'python');
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);

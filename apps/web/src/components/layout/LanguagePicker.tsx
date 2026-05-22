@@ -10,6 +10,8 @@ interface LanguagePickerProps {
 const LABELS: Record<ProblemLanguage, string> = {
   python: 'Python',
   javascript: 'JavaScript',
+  java: 'Java',
+  rust: 'Rust',
 };
 
 // Segmented toggle. Hides itself when there's only one language with

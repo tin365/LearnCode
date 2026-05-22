@@ -14,12 +14,14 @@ export interface RunOutput {
   testResults: TestResult[];
 }
 
-export type Language = 'python' | 'javascript';
+export type Language = 'python' | 'javascript' | 'java' | 'rust';
+
+const KNOWN_LANGUAGES: ReadonlySet<Language> = new Set(['python', 'javascript', 'java', 'rust']);
 
 function normaliseLanguage(value: string | null | undefined): Language {
   // Defensive: anything we don't recognise falls back to Python (the
   // historical default) so a typo'd seed file can't crash the grader.
-  return value === 'javascript' ? 'javascript' : 'python';
+  return value && KNOWN_LANGUAGES.has(value as Language) ? (value as Language) : 'python';
 }
 
 export function asLanguage(value: string | null | undefined): Language {
@@ -148,15 +150,37 @@ function runJsCodeOnly(userCode: string): { output: string; error: string | null
 // ---------------------------------------------------------------------------
 
 function runSnippet(language: Language, userCode: string, expression: string) {
-  return language === 'javascript'
-    ? runJsSnippet(userCode, expression)
-    : runPythonSnippet(userCode, expression);
+  switch (language) {
+    case 'javascript':
+      return runJsSnippet(userCode, expression);
+    case 'java':
+    case 'rust':
+      // Stub until phase 2/3 wires the compiled-language runtimes.
+      return {
+        ok: false,
+        value: '',
+        error: `${language} grading not yet implemented`,
+      };
+    case 'python':
+    default:
+      return runPythonSnippet(userCode, expression);
+  }
 }
 
 function runCodeOnly(language: Language, userCode: string) {
-  return language === 'javascript'
-    ? runJsCodeOnly(userCode)
-    : runPythonCodeOnly(userCode);
+  switch (language) {
+    case 'javascript':
+      return runJsCodeOnly(userCode);
+    case 'java':
+    case 'rust':
+      return {
+        output: '',
+        error: `${language} execution not yet implemented`,
+      };
+    case 'python':
+    default:
+      return runPythonCodeOnly(userCode);
+  }
 }
 
 export function runTests(

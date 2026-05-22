@@ -5,7 +5,7 @@ export interface User {
   isAdmin: boolean;
 }
 
-export type ProblemLanguage = 'python' | 'javascript';
+export type ProblemLanguage = 'python' | 'javascript' | 'java' | 'rust';
 
 export interface Problem {
   id: number;
