@@ -49,7 +49,13 @@ export function terminateWorker(): void {
 // other's responses (the worker echoes the id back).
 function sendWorkerRequest<T>(
   payload: Record<string, unknown>,
-  parse: (data: { passed?: boolean; results?: unknown[]; output?: string; error?: string | null }) => T,
+  parse: (data: {
+    passed?: boolean;
+    results?: unknown[];
+    output?: string;
+    error?: string | null;
+    stderr?: string | null;
+  }) => T,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const w = getWorker();
@@ -97,9 +103,21 @@ export function runPythonInWorker(
   });
 }
 
-export function runPythonCode(code: string): Promise<{ output: string; error: string | null }> {
-  return sendWorkerRequest({ code, testCases: [], runOnly: true }, (data) => ({
+export interface RunPythonCodeResult {
+  output: string;
+  /** Worker-level fatal (e.g. Pyodide failed to load). */
+  error: string | null;
+  /** Python traceback or whatever the user wrote to sys.stderr. */
+  stderr: string | null;
+}
+
+export function runPythonCode(
+  code: string,
+  stdin?: string[],
+): Promise<RunPythonCodeResult> {
+  return sendWorkerRequest({ code, testCases: [], runOnly: true, stdin }, (data) => ({
     output: data.output || '',
     error: data.error || null,
+    stderr: data.stderr || null,
   }));
 }

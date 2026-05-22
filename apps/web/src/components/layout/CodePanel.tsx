@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Play, Send, Square } from 'lucide-react';
+import { ChevronDown, ChevronRight, Keyboard, Loader2, Play, Send, Square } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { RunResult } from '@learncode/types';
 import { api } from '@/lib/api';
@@ -23,6 +23,8 @@ interface CodePanelProps {
 export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const [pyodideReady, setPyodideReady] = useState(false);
+  const [stdinOpen, setStdinOpen] = useState(false);
+  const [stdinText, setStdinText] = useState('');
 
   const code = useProblemStore((s) => s.code);
   const setCode = useProblemStore((s) => s.setCode);
@@ -30,12 +32,14 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   const output = useExecutionStore((s) => s.output);
   const lastResult = useExecutionStore((s) => s.lastResult);
   const submitError = useExecutionStore((s) => s.submitError);
+  const runStderr = useExecutionStore((s) => s.runStderr);
   const statusMessage = useExecutionStore((s) => s.statusMessage);
   const setRunning = useExecutionStore((s) => s.setRunning);
   const setOutput = useExecutionStore((s) => s.setOutput);
   const setResult = useExecutionStore((s) => s.setResult);
   const setSuccessScore = useExecutionStore((s) => s.setSuccessScore);
   const setSubmitError = useExecutionStore((s) => s.setSubmitError);
+  const setRunStderr = useExecutionStore((s) => s.setRunStderr);
   const setStatusMessage = useExecutionStore((s) => s.setStatusMessage);
   const queryClient = useQueryClient();
 
@@ -78,12 +82,24 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
     setResult(null);
     setSuccessScore(null);
     setSubmitError(null);
+    setRunStderr(null);
     setStatusMessage(pyodideReady ? 'Running code locally…' : 'Setting up Python environment…');
+    // Split the stdin textarea into lines, dropping a single trailing empty
+    // line (a typical artifact of pressing Enter after the last value).
+    const stdinLines = stdinText.replace(/\n$/, '').split('\n');
     try {
-      const { output: out, error } = await runPythonCode(code);
+      const { output: out, error, stderr } = await runPythonCode(code, stdinLines);
       setPyodideReady(true);
       if (error) {
-        setOutput(error);
+        // Worker-level fatal (Pyodide failed to load, etc.) — show in error pane.
+        setRunStderr(error);
+        setOutput('');
+        setStatusMessage('Run failed');
+      } else if (stderr) {
+        // Python raised. Show whatever it captured on stdout up to the point
+        // of the exception, plus the traceback in the error pane.
+        setOutput(out);
+        setRunStderr(stderr);
         setStatusMessage('Run finished with an error');
       } else {
         setOutput(out || '(no output)');
@@ -94,8 +110,8 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
       // this branch just swallows the rejection — no need to re-render.
       if (err instanceof ExecutionStoppedError) return;
       const message = err instanceof Error ? err.message : 'Run failed';
-      setOutput(message);
-      setStatusMessage(message);
+      setRunStderr(message);
+      setStatusMessage('Run failed');
     } finally {
       setRunning(false);
     }
@@ -112,6 +128,7 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
     setResult(null);
     setSuccessScore(null);
     setSubmitError(null);
+    setRunStderr(null);
     setOutput('⏹ Stopped');
     setStatusMessage('Stopped');
   }
@@ -132,9 +149,13 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   }
 
   const isBusy = running || submitMutation.isPending;
-  const terminalError = submitError || lastResult?.error || null;
+  // submit > tests > local-run errors, in priority order.
+  const terminalError = submitError || lastResult?.error || runStderr || null;
   const displayOutput = lastResult?.output || output;
   const isSubmitting = submitMutation.isPending;
+  const stdinLineCount = stdinText
+    ? stdinText.replace(/\n$/, '').split('\n').filter(Boolean).length
+    : 0;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -196,16 +217,69 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
           <span className="h-0.5 w-8 rounded-full bg-slate-400 md:hidden" />
         </PanelResizeHandle>
         <Panel defaultSize={35} minSize={15}>
-          <div ref={resultsRef} className="h-full">
-            <Terminal
-              output={displayOutput}
-              error={terminalError}
-              testResults={lastResult?.testResults ?? null}
-              isRunning={isBusy}
+          <div ref={resultsRef} className="flex h-full flex-col overflow-hidden">
+            <StdinPanel
+              open={stdinOpen}
+              onToggle={() => setStdinOpen((v) => !v)}
+              value={stdinText}
+              onChange={setStdinText}
+              lineCount={stdinLineCount}
             />
+            <div className="min-h-0 flex-1">
+              <Terminal
+                output={displayOutput}
+                error={terminalError}
+                testResults={lastResult?.testResults ?? null}
+                isRunning={isBusy}
+              />
+            </div>
           </div>
         </Panel>
       </PanelGroup>
+    </div>
+  );
+}
+
+interface StdinPanelProps {
+  open: boolean;
+  onToggle: () => void;
+  value: string;
+  onChange: (v: string) => void;
+  lineCount: number;
+}
+
+function StdinPanel({ open, onToggle, value, onChange, lineCount }: StdinPanelProps) {
+  return (
+    <div className="shrink-0 border-y bg-slate-50">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-medium text-slate-600 hover:bg-slate-100"
+      >
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <Keyboard className="h-3.5 w-3.5" />
+        <span>Input (stdin)</span>
+        {lineCount > 0 && (
+          <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+            {lineCount} line{lineCount === 1 ? '' : 's'}
+          </span>
+        )}
+        {!open && (
+          <span className="ml-auto text-[11px] text-slate-400">
+            One value per line — used when your code calls input()
+          </span>
+        )}
+      </button>
+      {open && (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={'Alice\n30\nyes'}
+          spellCheck={false}
+          className="block w-full resize-y border-t bg-white px-3 py-2 font-mono text-[13px] leading-relaxed text-slate-900 outline-none focus:bg-blue-50/30 md:text-sm"
+          rows={4}
+        />
+      )}
     </div>
   );
 }

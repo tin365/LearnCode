@@ -31,16 +31,64 @@ export function Terminal({ output, error, testResults, isRunning }: TerminalProp
             <strong className="font-semibold text-slate-400">Submit</strong> when ready.
           </p>
         )}
-        {error && (
-          <pre className="mb-2 whitespace-pre-wrap text-red-400">{error}</pre>
-        )}
         {output && !testResults?.length && (
           <pre className="whitespace-pre-wrap text-slate-100">{output}</pre>
         )}
+        {error && <ErrorBlock raw={error} />}
         {testResults && testResults.length > 0 && (
           <TestResultsBlock results={testResults} />
         )}
       </div>
     </div>
+  );
+}
+
+// Renders a Python traceback (or any error string) with the exception
+// line emphasised. Python tracebacks look like:
+//
+//   Traceback (most recent call last):
+//     File "<exec>", line 3, in <module>
+//       x = int("hello")
+//   ValueError: invalid literal for int() with base 10: 'hello'
+//
+// The last non-empty line is the exception type + message. The
+// "File "..."  line N" lines locate where it happened. Everything else
+// is the call stack.
+function ErrorBlock({ raw }: { raw: string }) {
+  const lines = raw.replace(/\s+$/, '').split('\n');
+  if (lines.length === 0) return null;
+
+  const lastIdx = lines.length - 1;
+  const last = lines[lastIdx];
+  const isPythonException = /^[A-Z][A-Za-z_0-9]*(?:Error|Exception|Warning|Interrupt|Exit):\s/.test(last);
+
+  return (
+    <pre className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-red-300">
+      {lines.map((line, i) => {
+        if (i === lastIdx && isPythonException) {
+          return (
+            <span key={i} className="block font-semibold text-red-400">
+              {line}
+            </span>
+          );
+        }
+        const fileLineMatch = line.match(/^(\s*)(File ".+?", line \d+)(.*)$/);
+        if (fileLineMatch) {
+          const [, indent, location, rest] = fileLineMatch;
+          return (
+            <span key={i} className="block">
+              {indent}
+              <span className="text-amber-300">{location}</span>
+              <span className="text-slate-400">{rest}</span>
+            </span>
+          );
+        }
+        return (
+          <span key={i} className="block">
+            {line || ' '}
+          </span>
+        );
+      })}
+    </pre>
   );
 }

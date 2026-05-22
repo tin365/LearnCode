@@ -2,11 +2,18 @@
 
 importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
 
-let pyodide: { runPythonAsync: (code: string) => Promise<unknown> } | null = null;
+interface PyodideInstance {
+  runPythonAsync: (code: string) => Promise<unknown>;
+  setStdin?: (config: { stdin: () => string | null }) => void;
+}
 
-async function loadPyodideOnce() {
+let pyodide: PyodideInstance | null = null;
+
+async function loadPyodideOnce(): Promise<PyodideInstance> {
   if (!pyodide) {
-    pyodide = await (self as unknown as { loadPyodide: () => Promise<typeof pyodide> }).loadPyodide();
+    pyodide = await (
+      self as unknown as { loadPyodide: () => Promise<PyodideInstance> }
+    ).loadPyodide();
   }
   return pyodide;
 }
@@ -18,10 +25,12 @@ interface TestCaseMsg {
 }
 
 self.onmessage = async (event: MessageEvent) => {
-  const { code, testCases, runOnly } = event.data as {
+  const { requestId, code, testCases, runOnly, stdin } = event.data as {
+    requestId: number;
     code: string;
     testCases: TestCaseMsg[];
     runOnly?: boolean;
+    stdin?: string[];
   };
 
   try {
@@ -29,22 +38,54 @@ self.onmessage = async (event: MessageEvent) => {
     if (!py) throw new Error('Failed to load Pyodide');
 
     if (runOnly) {
-      let output = '';
-      py.runPythonAsync = py.runPythonAsync.bind(py);
+      // Feed input() from a fixed list of lines provided by the user via
+      // the stdin panel. Each input() call consumes the next entry.
+      // When the queue is empty, returning null raises EOFError in Python
+      // — which is what the CPython runtime does at end-of-stdin too.
+      const stdinLines = stdin ?? [];
+      let stdinIndex = 0;
+      py.setStdin?.({
+        stdin: () => {
+          if (stdinIndex >= stdinLines.length) return null;
+          return stdinLines[stdinIndex++];
+        },
+      });
+
+      // Redirect both stdout and stderr to StringIO buffers so we can
+      // post them back separately. Anything Python writes via print()
+      // ends up in stdout; tracebacks formatted by sys.excepthook end
+      // up in stderr.
       await py.runPythonAsync(`
-import sys
-from io import StringIO
-_stdout = sys.stdout
-sys.stdout = StringIO()
+import sys, io
+_stdout, _stderr = sys.stdout, sys.stderr
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
 `);
+
+      let runtimeError: string | null = null;
       try {
         await py.runPythonAsync(code);
-        const captured = await py.runPythonAsync('sys.stdout.getvalue()');
-        output = String(captured);
-      } finally {
-        await py.runPythonAsync('sys.stdout = _stdout');
+      } catch (e) {
+        // Pyodide turns Python exceptions into JS Errors whose .message
+        // is the formatted traceback — perfect for the terminal panel.
+        runtimeError = e instanceof Error ? e.message : String(e);
       }
-      self.postMessage({ output, error: null });
+
+      const stdoutRaw = await py.runPythonAsync('sys.stdout.getvalue()');
+      const stderrRaw = await py.runPythonAsync('sys.stderr.getvalue()');
+      await py.runPythonAsync('sys.stdout, sys.stderr = _stdout, _stderr');
+
+      // Prefer the traceback from the thrown exception; fall back to
+      // whatever the user explicitly wrote to sys.stderr.
+      const stderr =
+        runtimeError ?? (String(stderrRaw).length > 0 ? String(stderrRaw) : null);
+
+      self.postMessage({
+        requestId,
+        output: String(stdoutRaw),
+        stderr,
+        error: null,
+      });
       return;
     }
 
@@ -63,9 +104,9 @@ sys.stdout = StringIO()
     }
 
     const allPassed = results.every((r) => r.passed);
-    self.postMessage({ passed: allPassed, results, error: null, output: '' });
+    self.postMessage({ requestId, passed: allPassed, results, error: null, output: '' });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    self.postMessage({ passed: false, results: [], error: message, output: '' });
+    self.postMessage({ requestId, passed: false, results: [], error: message, output: '' });
   }
 };
