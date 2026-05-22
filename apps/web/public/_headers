@@ -14,15 +14,25 @@
 #   props in a few places.
 # - worker-src includes blob: because Monaco bundles its editor worker
 #   as an inline blob URL via Vite's worker plugin.
+# - cdn.jsdelivr.net is allowed for scripts + styles because
+#   @monaco-editor/react fetches Monaco's own bundle from there at
+#   runtime. Self-hosting Monaco is a P2 follow-up; until then, the
+#   editor depends on this CDN.
+# - static.cloudflareinsights.com + cloudflareinsights.com are CF
+#   Pages' built-in Web Analytics. Disable in CF dashboard if you
+#   don't want this and we can remove the allowlist entry.
+# - fonts.googleapis.com (CSS) + fonts.gstatic.com (woff2) are loaded
+#   alongside the CF Insights beacon. Self-host the fonts to remove.
 # - connect-src lists Sentry's EU ingest hosts explicitly. If you
 #   move Sentry projects to a different region, update the pattern.
-# - img-src allows data: for inline SVG icons.
+# - img-src allows data: for inline SVG icons; font-src allows data:
+#   for any base64-embedded fonts Monaco or other libs ship.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.learncode.study https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com https://www.facebook.com
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; img-src 'self' data:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://api.learncode.study https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io https://cloudflareinsights.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com https://www.facebook.com
 
 # Pyodide runtime files are version-pinned in the path (we don't change
 # them until we upgrade Pyodide), so cache them aggressively. ~13 MB
