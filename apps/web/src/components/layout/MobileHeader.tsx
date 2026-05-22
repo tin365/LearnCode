@@ -44,9 +44,9 @@ export function MobileHeader() {
     <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white px-3 py-2 md:hidden">
       <Link to="/dashboard" className="flex items-center gap-2">
         <img
-          src="/learncode.svg"
+          src="/learncode-icon.svg"
           alt="LearnCode"
-          className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200"
+          className="h-8 w-8 rounded-full"
         />
         <span className="text-sm font-semibold text-slate-900">LearnCode</span>
       </Link>

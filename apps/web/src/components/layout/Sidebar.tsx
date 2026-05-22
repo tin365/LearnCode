@@ -38,9 +38,9 @@ export function Sidebar() {
       <div className="border-b p-4">
         <Link to="/dashboard" className="flex items-center gap-2">
           <img
-            src="/learncode.svg"
+            src="/learncode-icon.svg"
             alt="LearnCode"
-            className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200"
+            className="h-8 w-8 rounded-full"
           />
           <span className="text-lg font-bold text-primary">LearnCode</span>
         </Link>
