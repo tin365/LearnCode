@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { ModuleWithProgress, ProblemLanguage } from '@learncode/types';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -62,7 +62,11 @@ export function Landing() {
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 md:py-16">
         {/* Hero */}
         <section className="text-center">
-          <Sparkles className="mx-auto mb-4 h-8 w-8 text-blue-600" />
+          <img
+            src="/learncode-icon.svg"
+            alt="LearnCode"
+            className="mx-auto mb-4 h-14 w-14 rounded-full"
+          />
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
             Welcome back{user ? `, ${displayName(user.email)}` : ''}
           </h1>
