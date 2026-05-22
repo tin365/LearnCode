@@ -70,7 +70,13 @@ export function Sidebar() {
 
       <CollapsibleModuleSidebar />
 
-      <div className="border-t p-3">
+      <div className="space-y-2 border-t p-3">
+        <Link
+          to="/settings"
+          className="block rounded-md border px-3 py-1.5 text-center text-sm text-slate-700 hover:bg-slate-50"
+        >
+          Settings
+        </Link>
         <Button variant="outline" size="sm" className="w-full" onClick={() => void logout()}>
           Log out
         </Button>

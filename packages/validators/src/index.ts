@@ -61,6 +61,17 @@ export const oauthExchangeSchema = z.object({
   code: z.string().min(1).max(200),
 });
 
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: passwordField,
+});
+
+export const deleteAccountSchema = z.object({
+  // Required for password users; ignored for OAuth-only users.
+  // The server still verifies the password before deletion.
+  password: z.string().optional(),
+});
+
 export const runCodeSchema = z.object({
   language: z.enum(['python', 'javascript', 'java', 'rust']),
   // Cap size to keep the server from accepting megabytes of bytecode-sized
@@ -84,3 +95,5 @@ export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchem
 export type PasswordResetConfirmInput = z.infer<typeof passwordResetConfirmSchema>;
 export type RunCodeInput = z.infer<typeof runCodeSchema>;
 export type OAuthExchangeInput = z.infer<typeof oauthExchangeSchema>;
+export type PasswordChangeInput = z.infer<typeof passwordChangeSchema>;
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

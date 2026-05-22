@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon } from 'lucide-react';
 import type { ModuleWithProgress } from '@learncode/types';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -88,10 +88,18 @@ export function MobileHeader() {
               <div className="truncate border-b px-3 py-2 text-xs text-slate-500">
                 {user?.email}
               </div>
+              <Link
+                to="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+              >
+                <SettingsIcon className="h-4 w-4" />
+                Settings
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                className="flex w-full items-center gap-2 border-t px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
               >
                 <LogOut className="h-4 w-4" />
                 Log out

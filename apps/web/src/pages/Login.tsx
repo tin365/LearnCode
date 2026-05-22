@@ -20,10 +20,16 @@ export function Login() {
   const [password, setPassword] = useState('');
   const oauthError = searchParams.get('oauth_error');
   const passwordReset = searchParams.get('password_reset');
+  const accountState = searchParams.get('account');
   const [error, setError] = useState(
     oauthError ? 'Google sign in failed. Try again or use email and password.' : '',
   );
-  const notice = passwordReset === 'ok' ? 'Password updated. Log in with your new password.' : null;
+  const notice =
+    passwordReset === 'ok'
+      ? 'Password updated. Log in with your new password.'
+      : accountState === 'deleted'
+        ? 'Your account has been permanently deleted. Thanks for trying LearnCode.'
+        : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

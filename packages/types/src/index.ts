@@ -5,6 +5,14 @@ export interface User {
   isAdmin: boolean;
 }
 
+/** Returned by GET /auth/me — extended profile data used by Settings. */
+export interface UserProfile extends User {
+  /** True when the account has a password set (not OAuth-only). */
+  hasPassword: boolean;
+  /** Lowercase provider IDs the account is linked to: ['google', 'facebook']. */
+  connectedProviders: string[];
+}
+
 export type ProblemLanguage = 'python' | 'javascript' | 'java' | 'rust';
 
 export interface Problem {

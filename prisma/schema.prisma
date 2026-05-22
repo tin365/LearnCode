@@ -138,7 +138,7 @@ model LessonProgress {
   userId   Int      @map("user_id")
   lessonId Int      @map("lesson_id")
   readAt   DateTime @default(now()) @map("read_at")
-  user     User     @relation(fields: [userId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson   Lesson   @relation(fields: [lessonId], references: [id])
 
   @@unique([userId, lessonId])
@@ -193,7 +193,7 @@ model Progress {
   attempts    Int       @default(0)
   hintsUsed   Int       @default(0) @map("hints_used")
   completedAt DateTime? @map("completed_at")
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   problem     Problem   @relation(fields: [problemId], references: [id])
 
   @@unique([userId, problemId])

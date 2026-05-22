@@ -1,6 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcrypt';
-import { registerSchema, loginSchema, oauthExchangeSchema } from '@learncode/validators';
+import {
+  registerSchema,
+  loginSchema,
+  oauthExchangeSchema,
+  passwordChangeSchema,
+  deleteAccountSchema,
+} from '@learncode/validators';
 import type { AuthResponse, RefreshResponse } from '@learncode/types';
 import {
   COOKIE_NAME,
@@ -9,6 +15,7 @@ import {
   isClientKind,
   issueRefreshToken,
   refreshLifetimeMs,
+  revokeAllForUser,
   revokeByPlaintext,
   revokeFamily,
   rotateRefreshToken,
@@ -273,14 +280,105 @@ export async function authRoutes(fastify: FastifyInstance) {
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
       const userId = (request.user as { userId: number }).userId;
-      const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+      const user = await fastify.prisma.user.findUnique({
+        where: { id: userId },
+        include: { oauthAccounts: { select: { provider: true } } },
+      });
       if (!user) return reply.status(401).send({ error: 'User no longer exists' });
       return {
         id: user.id,
         email: user.email,
         createdAt: user.createdAt.toISOString(),
         isAdmin: user.isAdmin,
+        hasPassword: !!user.passwordHash,
+        connectedProviders: user.oauthAccounts.map((a) => a.provider),
       };
+    },
+  );
+
+  fastify.post(
+    '/auth/password-change',
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const parsed = passwordChangeSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.flatten() });
+      }
+
+      const userId = (request.user as { userId: number }).userId;
+      const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return reply.status(401).send({ error: 'User no longer exists' });
+
+      if (!user.passwordHash) {
+        return reply
+          .status(400)
+          .send({ error: "This account doesn't have a password yet — use forgot password to add one." });
+      }
+
+      const valid = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+      if (!valid) {
+        return reply.status(401).send({ error: 'Current password is incorrect' });
+      }
+
+      const newHash = await bcrypt.hash(parsed.data.newPassword, BCRYPT_COST);
+      await fastify.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: newHash },
+      });
+
+      // Revoke all existing sessions (other devices), then issue a fresh
+      // one for the requesting client. Same defence-in-depth pattern as
+      // the password-reset confirm flow.
+      await revokeAllForUser(fastify.prisma, userId);
+
+      const clientKind = readClientKind(request);
+      const refresh = await issueRefreshToken(fastify.prisma, {
+        userId,
+        clientKind,
+        userAgent: request.headers['user-agent'] ?? null,
+        ipAddress: request.ip,
+      });
+      if (clientKind === 'web') setRefreshCookie(reply, refresh.plaintext, clientKind);
+      return buildAuthResponse(fastify, user, refresh, clientKind);
+    },
+  );
+
+  fastify.delete(
+    '/auth/me',
+    {
+      preHandler: [fastify.authenticate],
+      config: { rateLimit: { max: 3, timeWindow: '1 minute' } },
+    },
+    async (request, reply) => {
+      const userId = (request.user as { userId: number }).userId;
+      const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return reply.status(404).send({ error: 'User not found' });
+
+      // Password-confirm only if the account has a password. OAuth-only
+      // users are authenticated by the access token alone (they have no
+      // password to confirm against).
+      if (user.passwordHash) {
+        const parsed = deleteAccountSchema.safeParse(request.body);
+        if (!parsed.success || !parsed.data.password) {
+          return reply
+            .status(400)
+            .send({ error: 'Password required to delete account' });
+        }
+        const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
+        if (!valid) {
+          return reply.status(401).send({ error: 'Password is incorrect' });
+        }
+      }
+
+      // Cascade deletes via schema: refresh tokens, oauth accounts,
+      // password resets, oauth exchange codes, lesson progress, problem
+      // progress all go away with the user row.
+      await fastify.prisma.user.delete({ where: { id: userId } });
+      clearRefreshCookie(reply);
+      return reply.status(204).send();
     },
   );
 }

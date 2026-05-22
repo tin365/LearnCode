@@ -16,6 +16,7 @@ import { OAuthComplete } from '@/pages/OAuthComplete';
 import { OAuthError } from '@/pages/OAuthError';
 import { ForgotPassword } from '@/pages/ForgotPassword';
 import { ResetPassword } from '@/pages/ResetPassword';
+import { Settings } from '@/pages/Settings';
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/dashboard" element={<Landing />} />
             <Route path="/languages" element={<Languages />} />
             <Route path="/learn/:language" element={<LanguageView />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/workspace/:id" element={<Workspace />} />
             <Route path="/module/:moduleId/lesson" element={<ModuleLesson />} />
           </Route>
