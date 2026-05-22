@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight } from 'lucide-react';
-import type { ModuleWithProgress, ProblemLanguage } from '@learncode/types';
+import { ArrowRight, Flame, Trophy } from 'lucide-react';
+import type { ModuleWithProgress, ProblemLanguage, UserStats } from '@learncode/types';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -19,6 +19,84 @@ const LANGUAGES: { id: ProblemLanguage; label: string; tagline: string; accent: 
 
 function displayName(email: string): string {
   return email.split('@')[0];
+}
+
+function StreakBanner({ stats }: { stats: UserStats }) {
+  // Three states, decided by how recently the user was active:
+  //   - active today or yesterday → flame + count
+  //   - never active or lapsed >= 2 days → call-to-action
+  //   - everything else → covered by the "active" branch above
+
+  if (stats.currentStreak === 0) {
+    // First-time or lapsed. Show an inviting "start your streak" card
+    // rather than a sad zero — keeps the page from feeling punishing.
+    return (
+      <section className="mt-10 rounded-lg border border-slate-200 bg-white p-5">
+        <div className="flex items-center gap-3">
+          <Flame className="h-6 w-6 shrink-0 text-slate-300" />
+          <div>
+            <p className="text-sm font-semibold text-slate-900">
+              {stats.longestStreak > 0
+                ? 'Restart your streak today'
+                : 'Solve a problem today to start your streak'}
+            </p>
+            <p className="text-xs text-slate-500">
+              {stats.longestStreak > 0
+                ? `Your longest run so far: ${stats.longestStreak} day${stats.longestStreak === 1 ? '' : 's'}.`
+                : 'One problem a day keeps the muscle memory sharp.'}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-10 grid gap-3 sm:grid-cols-3">
+      <Stat
+        icon={<Flame className="h-5 w-5 text-orange-500" />}
+        label="Current streak"
+        value={`${stats.currentStreak} day${stats.currentStreak === 1 ? '' : 's'}`}
+        emphasis
+      />
+      <Stat
+        icon={<Trophy className="h-5 w-5 text-amber-500" />}
+        label="Longest streak"
+        value={`${stats.longestStreak} day${stats.longestStreak === 1 ? '' : 's'}`}
+      />
+      <Stat
+        label="Total solved"
+        value={`${stats.totalSolved}`}
+      />
+    </section>
+  );
+}
+
+function Stat({
+  icon,
+  label,
+  value,
+  emphasis,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-lg border bg-white p-4',
+        emphasis ? 'border-orange-200 bg-orange-50/40' : 'border-slate-200',
+      )}
+    >
+      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <p className="mt-1 text-2xl font-bold text-slate-900">{value}</p>
+    </div>
+  );
 }
 
 export function Landing() {
@@ -39,8 +117,13 @@ export function Landing() {
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
   });
 
+  const { data: stats } = useQuery({
+    queryKey: ['me-stats'],
+    queryFn: () => api.get<UserStats>('/me/stats'),
+  });
+
   // Aggregate per-language progress for the chip row at the bottom.
-  const stats = useMemo(() => {
+  const byLanguage = useMemo(() => {
     const acc = new Map<ProblemLanguage, { completed: number; total: number }>();
     for (const m of modules) {
       const cur = acc.get(m.language) ?? { completed: 0, total: 0 };
@@ -55,16 +138,16 @@ export function Landing() {
   // visited; fall back to whichever language has any progress; else
   // the first available language; else Python.
   const continueTarget: ProblemLanguage | null = useMemo(() => {
-    if (stats.has(lastLanguage)) return lastLanguage;
+    if (byLanguage.has(lastLanguage)) return lastLanguage;
     for (const lang of LANGUAGES) {
-      const s = stats.get(lang.id);
+      const s = byLanguage.get(lang.id);
       if (s && s.completed > 0) return lang.id;
     }
     for (const lang of LANGUAGES) {
-      if (stats.has(lang.id)) return lang.id;
+      if (byLanguage.has(lang.id)) return lang.id;
     }
     return null;
-  }, [stats, lastLanguage]);
+  }, [byLanguage, lastLanguage]);
 
   if (isError) {
     return (
@@ -119,6 +202,10 @@ export function Landing() {
           </div>
         </section>
 
+        {/* Streak banner — only renders once stats land so we don't flash
+            a confusing "0 day streak" during load. */}
+        {stats && <StreakBanner stats={stats} />}
+
         {/* Per-language progress chips */}
         <section className="mt-12">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -126,7 +213,7 @@ export function Landing() {
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {LANGUAGES.map((lang) => {
-              const s = stats.get(lang.id);
+              const s = byLanguage.get(lang.id);
               const completed = s?.completed ?? 0;
               const total = s?.total ?? 0;
               const pct = total > 0 ? Math.round((completed / total) * 100) : 0;

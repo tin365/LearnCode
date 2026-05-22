@@ -56,6 +56,8 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
         setStatusMessage(`All tests passed! Score: ${result.score} points`);
         setOutput(result.output || 'All tests passed!');
         queryClient.invalidateQueries({ queryKey: ['progress'] });
+        // Streak / total-solved derived from progress — refresh those too.
+        queryClient.invalidateQueries({ queryKey: ['me-stats'] });
         toast.success(`All tests passed! Score: ${result.score} points`);
       } else {
         setStatusMessage('Some tests failed — see details below');

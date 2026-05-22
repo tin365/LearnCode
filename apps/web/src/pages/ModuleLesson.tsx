@@ -37,6 +37,8 @@ export function ModuleLesson() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lesson', moduleId] });
       queryClient.invalidateQueries({ queryKey: ['modules'] });
+      // Streak counts lesson reads — refresh.
+      queryClient.invalidateQueries({ queryKey: ['me-stats'] });
     },
   });
 

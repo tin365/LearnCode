@@ -5,6 +5,21 @@ export interface User {
   isAdmin: boolean;
 }
 
+export interface UserStats {
+  /** Consecutive UTC days ending today (or yesterday) that the user
+   *  passed a problem or read a lesson. 0 if they've never been active
+   *  or have lapsed by 2+ days. */
+  currentStreak: number;
+  /** Longest run ever, used for "personal best" displays. */
+  longestStreak: number;
+  /** ISO date string YYYY-MM-DD, null if no activity. */
+  lastActiveDate: string | null;
+  /** Number of problems passed (any language). */
+  totalSolved: number;
+  /** Number of lesson sections read (any language). */
+  totalLessonsRead: number;
+}
+
 /** Returned by GET /auth/me — extended profile data used by Settings. */
 export interface UserProfile extends User {
   /** True when the account has a password set (not OAuth-only). */

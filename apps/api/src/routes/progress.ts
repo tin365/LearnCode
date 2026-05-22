@@ -2,7 +2,49 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { submitProgressSchema, hintRevealSchema } from '@learncode/validators';
 import { runTests, calculateScore, asLanguage } from '../lib/testRunner.js';
-import type { Progress, RunResult } from '@learncode/types';
+import type { Progress, RunResult, UserStats } from '@learncode/types';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** YYYY-MM-DD in UTC, used as the bucket for daily streak counting.
+ *  Real timezone-aware streaks are a follow-up — see TO_UPGRADE.md. */
+function utcDateKey(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function computeStreaks(sortedDates: string[]): { current: number; longest: number } {
+  if (sortedDates.length === 0) return { current: 0, longest: 0 };
+
+  // Longest streak across history.
+  let longest = 1;
+  let run = 1;
+  for (let i = 1; i < sortedDates.length; i++) {
+    const prev = Date.parse(sortedDates[i - 1] + 'T00:00:00Z');
+    const cur = Date.parse(sortedDates[i] + 'T00:00:00Z');
+    if (cur - prev === MS_PER_DAY) {
+      run++;
+      if (run > longest) longest = run;
+    } else {
+      run = 1;
+    }
+  }
+
+  // Current streak: must extend to today or yesterday in UTC; otherwise 0.
+  const today = utcDateKey(new Date());
+  const yesterday = utcDateKey(new Date(Date.now() - MS_PER_DAY));
+  const last = sortedDates[sortedDates.length - 1];
+  if (last !== today && last !== yesterday) {
+    return { current: 0, longest };
+  }
+  let current = 1;
+  for (let i = sortedDates.length - 2; i >= 0; i--) {
+    const prev = Date.parse(sortedDates[i] + 'T00:00:00Z');
+    const next = Date.parse(sortedDates[i + 1] + 'T00:00:00Z');
+    if (next - prev === MS_PER_DAY) current++;
+    else break;
+  }
+  return { current, longest: Math.max(longest, current) };
+}
 
 export async function progressRoutes(fastify: FastifyInstance) {
   fastify.get('/progress', { preHandler: [fastify.authenticate] }, async (request) => {
@@ -22,6 +64,44 @@ export async function progressRoutes(fastify: FastifyInstance) {
       }),
     );
   });
+
+  fastify.get(
+    '/me/stats',
+    { preHandler: [fastify.authenticate] },
+    async (request): Promise<UserStats> => {
+      const userId = (request.user as { userId: number }).userId;
+      // Two indexed-by-userId scans; cheap on a single user.
+      const [problemRows, lessonRows] = await Promise.all([
+        fastify.prisma.progress.findMany({
+          where: { userId, completedAt: { not: null } },
+          select: { completedAt: true },
+        }),
+        fastify.prisma.lessonProgress.findMany({
+          where: { userId },
+          select: { readAt: true },
+        }),
+      ]);
+
+      // Bucket activity by UTC date so two-events-same-day count once.
+      const dateSet = new Set<string>();
+      for (const r of problemRows) {
+        if (r.completedAt) dateSet.add(utcDateKey(r.completedAt));
+      }
+      for (const r of lessonRows) {
+        dateSet.add(utcDateKey(r.readAt));
+      }
+      const sortedDates = [...dateSet].sort();
+      const { current, longest } = computeStreaks(sortedDates);
+
+      return {
+        currentStreak: current,
+        longestStreak: longest,
+        lastActiveDate: sortedDates.at(-1) ?? null,
+        totalSolved: problemRows.length,
+        totalLessonsRead: lessonRows.length,
+      };
+    },
+  );
 
   fastify.post(
     '/progress/submit',
