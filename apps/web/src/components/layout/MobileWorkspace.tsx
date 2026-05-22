@@ -18,7 +18,9 @@ export function MobileWorkspace({ problemId, moduleId }: MobileWorkspaceProps) {
   const [stage, setStage] = useState<Stage>('reading');
 
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
+    // 100dvh (dynamic viewport height) instead of 100vh so the layout
+    // shrinks when the mobile keyboard opens, keeping the toolbar in view.
+    <div className="flex h-[100dvh] flex-col bg-slate-50">
       <MobileHeader />
       {stage === 'reading' ? (
         <ReadingStage
@@ -91,20 +93,24 @@ function CodingStage({
   problemId: number;
   onBackToQuestions: () => void;
 }) {
+  // min-h-0 + flex-1 lets CodePanel (which uses h-full internally) fill the
+  // remaining vertical space inside the flex column instead of overflowing.
   return (
-    <CodePanel
-      problemId={problemId}
-      leftAction={
-        <button
-          type="button"
-          onClick={onBackToQuestions}
-          className="flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          title="Back to problem description"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Questions
-        </button>
-      }
-    />
+    <div className="min-h-0 flex-1">
+      <CodePanel
+        problemId={problemId}
+        leftAction={
+          <button
+            type="button"
+            onClick={onBackToQuestions}
+            className="flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            title="Back to problem description"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Questions
+          </button>
+        }
+      />
+    </div>
   );
 }
