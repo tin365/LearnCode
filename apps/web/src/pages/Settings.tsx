@@ -189,7 +189,15 @@ function ChangePasswordSection({
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1">
-            <Label htmlFor="current">Current password</Label>
+            <div className="flex items-baseline justify-between">
+              <Label htmlFor="current">Current password</Label>
+              <Link
+                to="/auth/forgot-password"
+                className="text-xs text-primary hover:underline"
+              >
+                Forgot it?
+              </Link>
+            </div>
             <Input
               id="current"
               type="password"
