@@ -10,6 +10,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { LearningPanel } from '@/components/layout/LearningPanel';
 import { CodePanel } from '@/components/layout/CodePanel';
+import { MobileWorkspace } from '@/components/layout/MobileWorkspace';
 
 function isUnlocked(problems: Problem[], progress: Progress[], target: Problem): boolean {
   if (target.orderIndex === 1) return true;
@@ -82,20 +83,28 @@ export function Workspace() {
   }
 
   return (
-    <div className="h-screen overflow-hidden">
-      <PanelGroup direction="horizontal" className="h-full">
-        <Panel defaultSize={18} minSize={15} maxSize={25}>
-          <Sidebar />
-        </Panel>
-        <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
-        <Panel defaultSize={40} minSize={30}>
-          <LearningPanel problemId={problem.id} moduleId={problem.moduleId} />
-        </Panel>
-        <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
-        <Panel defaultSize={42} minSize={30}>
-          <CodePanel problemId={problemId} />
-        </Panel>
-      </PanelGroup>
-    </div>
+    <>
+      {/* Desktop (>= md): three-panel horizontal layout */}
+      <div className="hidden h-screen overflow-hidden md:block">
+        <PanelGroup direction="horizontal" className="h-full">
+          <Panel defaultSize={18} minSize={15} maxSize={25}>
+            <Sidebar />
+          </Panel>
+          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
+          <Panel defaultSize={40} minSize={30}>
+            <LearningPanel problemId={problem.id} moduleId={problem.moduleId} />
+          </Panel>
+          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
+          <Panel defaultSize={42} minSize={30}>
+            <CodePanel problemId={problemId} />
+          </Panel>
+        </PanelGroup>
+      </div>
+
+      {/* Mobile (< md): stacked layout with reading/coding stage toggle */}
+      <div className="md:hidden">
+        <MobileWorkspace problemId={problem.id} moduleId={problem.moduleId} />
+      </div>
+    </>
   );
 }

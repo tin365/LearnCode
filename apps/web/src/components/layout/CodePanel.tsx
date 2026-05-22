@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Play, Send } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,9 +14,13 @@ import { cn } from '@/lib/utils';
 
 interface CodePanelProps {
   problemId: number;
+  // Optional slot rendered at the left edge of the toolbar. Used on
+  // mobile to inject a "Questions" button that flips back to the
+  // problem-reading stage.
+  leftAction?: ReactNode;
 }
 
-export function CodePanel({ problemId }: CodePanelProps) {
+export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const [pyodideReady, setPyodideReady] = useState(false);
 
@@ -117,6 +121,7 @@ export function CodePanel({ problemId }: CodePanelProps) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
+        {leftAction}
         <button
           onClick={handleRun}
           disabled={isBusy}
