@@ -1,6 +1,26 @@
 # Cloudflare Pages headers. Patterns and values per
 # https://developers.cloudflare.com/pages/configuration/headers/.
 
+# Baseline security headers for every response — closes TO_UPGRADE.md
+# P1 #11 (no CSP) and adds HSTS / clickjack / sniff protections that
+# Helmet already sets on the API side.
+#
+# CSP notes:
+# - 'unsafe-inline' on style-src is regrettable but needed for the
+#   `style={{...}}` props React components use in a few places.
+#   Removing would require a sweeping audit + refactor.
+# - worker-src includes blob: because Monaco bundles its editor worker
+#   as an inline blob URL via Vite's worker plugin.
+# - connect-src lists Sentry's EU ingest hosts explicitly. If you
+#   move Sentry projects to a different region, update the pattern.
+# - img-src allows data: for inline SVG icons.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.learncode.study https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com https://www.facebook.com
+
 # Pyodide runtime files are version-pinned in the path (we don't change
 # them until we upgrade Pyodide), so cache them aggressively. ~13 MB
 # total; without this they'd re-download on every page load.
