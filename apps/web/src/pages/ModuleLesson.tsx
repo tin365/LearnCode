@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock } from 'lucide-rea
 import type { Lesson, ModuleWithProgress } from '@learncode/types';
 import { api } from '@/lib/api';
 import { SectionRenderer } from '@/components/lessons/SectionRenderer';
+import { MobileHeader } from '@/components/layout/MobileHeader';
 
 export function ModuleLesson() {
   const { moduleId: moduleIdParam } = useParams();
@@ -64,13 +65,19 @@ export function ModuleLesson() {
   //  - Else, go to dashboard.
   const continueTarget = (() => {
     if (currentMod && currentMod.problems.length > 0) {
-      return { kind: 'problem' as const, id: currentMod.problems[0].id, label: 'Start the problem' };
+      return {
+        kind: 'problem' as const,
+        id: currentMod.problems[0].id,
+        label: 'Start the problem',
+        mobileLabel: 'Start the problem',
+      };
     }
     if (nextMod && nextMod.problems.length > 0) {
       return {
         kind: 'problem' as const,
         id: nextMod.problems[0].id,
         label: `Continue to ${nextMod.title}`,
+        mobileLabel: 'Continue to next module',
       };
     }
     if (nextMod) {
@@ -78,9 +85,14 @@ export function ModuleLesson() {
         kind: 'lesson' as const,
         id: nextMod.id,
         label: `Continue to ${nextMod.title}`,
+        mobileLabel: 'Continue to next module',
       };
     }
-    return { kind: 'dashboard' as const, label: 'Back to dashboard' };
+    return {
+      kind: 'dashboard' as const,
+      label: 'Back to dashboard',
+      mobileLabel: 'Back to dashboard',
+    };
   })();
 
   const alreadyRead = !!lesson.readAt;
@@ -94,8 +106,9 @@ export function ModuleLesson() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 border-b bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
+      <MobileHeader />
+      <header className="sticky top-0 z-10 hidden border-b bg-white md:block">
+        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <button
             type="button"
             onClick={() => navigate('/dashboard')}
@@ -111,7 +124,7 @@ export function ModuleLesson() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 py-10">
+      <main className="mx-auto max-w-4xl px-4 py-6 md:px-6 md:py-10">
         <div className="mb-8">
           <div className="mb-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
             <Clock className="h-4 w-4" />
@@ -123,7 +136,7 @@ export function ModuleLesson() {
               </span>
             )}
           </div>
-          <h1 className="text-4xl font-bold text-slate-900">{lesson.title}</h1>
+          <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">{lesson.title}</h1>
           {lesson.concepts.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
               {lesson.concepts.map((c) => (
@@ -144,7 +157,7 @@ export function ModuleLesson() {
           ))}
         </div>
 
-        <div className="mt-12 flex items-center justify-between rounded-lg border bg-white p-6">
+        <div className="mt-12 flex flex-col gap-4 rounded-lg border bg-white p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="font-semibold text-slate-900">
               {continueTarget.kind === 'dashboard'
@@ -163,7 +176,8 @@ export function ModuleLesson() {
             disabled={completeMutation.isPending}
             className="flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            {continueTarget.label}
+            <span className="md:hidden">{continueTarget.mobileLabel}</span>
+            <span className="hidden md:inline">{continueTarget.label}</span>
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

@@ -4,9 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ArrowRight, BookOpen, CheckCircle2, Circle, Lock } from 'lucide-react';
 import type { ModuleWithProgress } from '@learncode/types';
-import { api, logout } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { MobileHeader } from '@/components/layout/MobileHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -122,44 +123,10 @@ export function Dashboard() {
 
       {/* Mobile (< md): top bar + scroll */}
       <div className="flex h-full flex-col bg-slate-50 md:hidden">
-        <MobileTopBar />
+        <MobileHeader />
         <main className="flex-1 overflow-auto p-4">{content}</main>
       </div>
     </div>
-  );
-}
-
-function MobileTopBar() {
-  const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.isAdmin ?? false;
-  const initials = user?.email.slice(0, 2).toUpperCase() ?? '';
-
-  return (
-    <header className="flex shrink-0 items-center justify-between border-b bg-white px-4 py-3">
-      <Link to="/dashboard" className="text-lg font-bold text-primary">
-        LearnCode
-      </Link>
-      <div className="flex items-center gap-2">
-        {isAdmin && (
-          <span
-            title="Admin: bypasses all unlock checks"
-            className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
-          >
-            Admin
-          </span>
-        )}
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
-          {initials}
-        </span>
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="rounded-md border px-2 py-1 text-xs hover:bg-slate-50"
-        >
-          Log out
-        </button>
-      </div>
-    </header>
   );
 }
 
