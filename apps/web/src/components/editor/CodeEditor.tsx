@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 
 interface CodeEditorProps {
@@ -7,9 +7,25 @@ interface CodeEditorProps {
   readOnly?: boolean;
 }
 
+// Tailwind's md: breakpoint.
+const MOBILE_QUERY = '(max-width: 767px)';
+
 export function CodeEditor({ value, onChange, readOnly }: CodeEditorProps) {
   const editorRef = useRef<{ layout: () => void } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Use 16px on mobile so iOS Safari doesn't auto-zoom on focus
+  // (it zooms on any text input below 16px). 14px on desktop matches
+  // the rest of the editor's compact density.
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia(MOBILE_QUERY).matches,
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(MOBILE_QUERY);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
 
   useEffect(() => {
     const observer = new ResizeObserver(() => {
@@ -34,7 +50,7 @@ export function CodeEditor({ value, onChange, readOnly }: CodeEditorProps) {
         onChange={(v) => onChange(v ?? '')}
         onMount={handleEditorDidMount}
         options={{
-          fontSize: 14,
+          fontSize: isMobile ? 16 : 14,
           fontFamily: '"JetBrains Mono", "Fira Code", monospace',
           lineNumbers: 'on',
           wordWrap: 'on',
