@@ -295,10 +295,13 @@ A quick `axe-core` pass on key pages will surface:
   problem.
 - **Editor preferences**: font size, theme (light/dark/high-contrast),
   Vim/Emacs keybinding mode (Monaco supports both).
-- **AI-powered hints** via the Anthropic API — when the static
-  3-hint set is exhausted, offer "Get a custom hint from Claude"
-  that takes the user's current code + the problem and explains
-  what's likely wrong. Charge against a per-user quota.
+- ⏸ **AI-powered hints** via the Anthropic API — *deferred until
+  monetisation.* The current static 3-hint set is human-/agent-
+  authored at seed time and costs $0 at runtime; adding live Claude
+  calls would be the only usage-based cost on the stack ($10–400/mo
+  depending on user count + quota) and is the wrong thing to layer
+  in before there's revenue to offset it. Revisit when the platform
+  has a paying tier or sponsorship.
 - **Problem feedback**: tiny "Was this too easy / about right /
   too hard" widget at the end of every passed problem. Lets you
   calibrate the curriculum.
