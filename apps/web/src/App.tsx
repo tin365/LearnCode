@@ -17,6 +17,8 @@ import { OAuthError } from '@/pages/OAuthError';
 import { ForgotPassword } from '@/pages/ForgotPassword';
 import { ResetPassword } from '@/pages/ResetPassword';
 import { Settings } from '@/pages/Settings';
+import { Privacy } from '@/pages/Privacy';
+import { Terms } from '@/pages/Terms';
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,10 @@ export default function App() {
           <Route path="/auth/oauth-error" element={<OAuthError />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/reset-password" element={<ResetPassword />} />
+          {/* Public legal pages — accessible without auth so OAuth
+              provider review can crawl them. */}
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route element={<AppShell />}>
             {/* Landing → Languages → Module-view drill-down */}
             <Route path="/dashboard" element={<Landing />} />
