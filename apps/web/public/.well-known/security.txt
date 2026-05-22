@@ -1,0 +1,9 @@
+# Security contact information for LearnCode.
+# Follows RFC 9116 (https://www.rfc-editor.org/rfc/rfc9116).
+# Reachable at https://learncode.study/.well-known/security.txt
+# (and the same path under any subdomain via CF Pages / Render).
+
+Contact: mailto:mgtinsan465@gmail.com
+Expires: 2027-05-22T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://learncode.study/.well-known/security.txt
