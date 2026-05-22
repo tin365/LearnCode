@@ -7,6 +7,7 @@ export interface TestCasePayload {
 }
 
 let worker: Worker | null = null;
+let nextRequestId = 0;
 
 function getWorker(): Worker {
   if (!worker) {
@@ -17,58 +18,57 @@ function getWorker(): Worker {
   return worker;
 }
 
+// Shared request/response over the singleton Pyodide worker. Each call
+// gets its own requestId so concurrent in-flight requests don't see each
+// other's responses (the worker echoes the id back).
+function sendWorkerRequest<T>(
+  payload: Record<string, unknown>,
+  parse: (data: { passed?: boolean; results?: unknown[]; output?: string; error?: string | null }) => T,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const w = getWorker();
+    const requestId = ++nextRequestId;
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.requestId !== requestId) return;
+      w.removeEventListener('message', onMessage);
+      w.removeEventListener('error', onError);
+      resolve(parse(event.data));
+    };
+
+    const onError = (err: ErrorEvent) => {
+      w.removeEventListener('message', onMessage);
+      w.removeEventListener('error', onError);
+      reject(err);
+    };
+
+    w.addEventListener('message', onMessage);
+    w.addEventListener('error', onError);
+    w.postMessage({ requestId, ...payload });
+  });
+}
+
 export function runPythonInWorker(
   code: string,
   testCases: TestCasePayload[],
 ): Promise<RunResult> {
-  return new Promise((resolve, reject) => {
-    const w = getWorker();
-
-    const handler = (event: MessageEvent) => {
-      w.removeEventListener('message', handler);
-      w.removeEventListener('error', onError);
-
-      const { passed, results, error, output } = event.data;
-      const testResults: TestResult[] = (results || []).map(
-        (r: { passed: boolean; expected: string; actual: string; hidden: boolean }) => ({
-          passed: r.passed,
-          expected: r.expected,
-          actual: r.actual,
-          hidden: r.hidden,
-        }),
-      );
-
-      resolve({
-        passed: !!passed,
-        output: output || '',
-        error: error || null,
-        testResults,
-        score: 0,
-      });
+  return sendWorkerRequest({ code, testCases }, (data) => {
+    const testResults: TestResult[] = (data.results ?? []).map(
+      (r) => r as TestResult,
+    );
+    return {
+      passed: !!data.passed,
+      output: data.output || '',
+      error: data.error || null,
+      testResults,
+      score: 0,
     };
-
-    const onError = (err: ErrorEvent) => {
-      w.removeEventListener('message', handler);
-      reject(err);
-    };
-
-    w.addEventListener('message', handler);
-    w.addEventListener('error', onError);
-    w.postMessage({ code, testCases });
   });
 }
 
 export function runPythonCode(code: string): Promise<{ output: string; error: string | null }> {
-  return new Promise((resolve, reject) => {
-    const w = getWorker();
-
-    const handler = (event: MessageEvent) => {
-      w.removeEventListener('message', handler);
-      resolve({ output: event.data.output || '', error: event.data.error || null });
-    };
-
-    w.addEventListener('message', handler);
-    w.addEventListener('error', reject);
-    w.postMessage({ code, testCases: [], runOnly: true });
-  });
+  return sendWorkerRequest({ code, testCases: [], runOnly: true }, (data) => ({
+    output: data.output || '',
+    error: data.error || null,
+  }));
 }

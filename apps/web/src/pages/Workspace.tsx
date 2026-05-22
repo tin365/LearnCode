@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { LearningPanel } from '@/components/layout/LearningPanel';
 import { CodePanel } from '@/components/layout/CodePanel';
 import { MobileWorkspace } from '@/components/layout/MobileWorkspace';
+import { useMediaQuery, MOBILE_QUERY } from '@/hooks/useMediaQuery';
 
 function isUnlocked(problems: Problem[], progress: Progress[], target: Problem): boolean {
   if (target.orderIndex === 1) return true;
@@ -30,6 +31,7 @@ export function Workspace() {
   const syncHintsFromProgress = useProblemStore((s) => s.syncHintsFromProgress);
   const resetExecution = useExecutionStore((s) => s.reset);
   const isAdmin = useAuthStore((s) => s.user?.isAdmin ?? false);
+  const isMobile = useMediaQuery(MOBILE_QUERY);
 
   const { data: problems = [] } = useQuery({
     queryKey: ['problems'],
@@ -82,29 +84,29 @@ export function Workspace() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return (
-    <>
-      {/* Desktop (>= md): three-panel horizontal layout */}
-      <div className="hidden h-screen overflow-hidden md:block">
-        <PanelGroup direction="horizontal" className="h-full">
-          <Panel defaultSize={18} minSize={15} maxSize={25}>
-            <Sidebar />
-          </Panel>
-          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
-          <Panel defaultSize={40} minSize={30}>
-            <LearningPanel problemId={problem.id} moduleId={problem.moduleId} />
-          </Panel>
-          <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
-          <Panel defaultSize={42} minSize={30}>
-            <CodePanel problemId={problemId} />
-          </Panel>
-        </PanelGroup>
-      </div>
+  // Render exactly one of the two layouts. We used to render both with
+  // md:hidden / md:block CSS gates, but that double-mounted Monaco, the
+  // Sidebar's module query, the LearningPanel's lesson query, etc. —
+  // wasteful and a source of subtle duplicate-event bugs.
+  if (isMobile) {
+    return <MobileWorkspace problemId={problem.id} moduleId={problem.moduleId} />;
+  }
 
-      {/* Mobile (< md): stacked layout with reading/coding stage toggle */}
-      <div className="md:hidden">
-        <MobileWorkspace problemId={problem.id} moduleId={problem.moduleId} />
-      </div>
-    </>
+  return (
+    <div className="h-screen overflow-hidden">
+      <PanelGroup direction="horizontal" className="h-full">
+        <Panel defaultSize={18} minSize={15} maxSize={25}>
+          <Sidebar />
+        </Panel>
+        <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
+        <Panel defaultSize={40} minSize={30}>
+          <LearningPanel problemId={problem.id} moduleId={problem.moduleId} />
+        </Panel>
+        <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
+        <Panel defaultSize={42} minSize={30}>
+          <CodePanel problemId={problemId} />
+        </Panel>
+      </PanelGroup>
+    </div>
   );
 }

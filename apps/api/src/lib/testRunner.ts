@@ -16,10 +16,25 @@ export interface RunOutput {
 
 function formatPythonValue(value: unknown): string {
   if (typeof value === 'boolean') return value ? 'True' : 'False';
-  if (value === null || value === undefined) return String(value);
-  if (Array.isArray(value)) return JSON.stringify(value).replace(/"/g, "'");
+  if (value === null || value === undefined) return 'None';
+  if (typeof value === 'object') return JSON.stringify(value).replace(/"/g, "'");
   return String(value);
 }
+
+// Common spawnSync options for every python3 invocation. Centralising
+// them so the env-stripping and cwd-confinement rules can't drift
+// between call sites. Subprocess attacks via absolute paths aren't
+// prevented by either knob — they need a real sandbox.
+const pythonSpawnOptions = {
+  encoding: 'utf-8' as const,
+  timeout: 5000,
+  maxBuffer: 1024 * 1024,
+  // Strip parent env (DATABASE_URL, JWT_SECRET, etc.) but keep PATH so
+  // python3 starts up quickly without scanning the whole filesystem.
+  env: { PATH: process.env.PATH ?? '' },
+  // Confine relative file operations to /tmp.
+  cwd: '/tmp',
+};
 
 function runPythonSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
   // Use json.dumps directly on the result so the output is proper JSON, not repr().
@@ -35,11 +50,7 @@ function runPythonSnippet(userCode: string, expression: string): { ok: boolean; 
     '    print(__json__.dumps({"v": str(__result__), "__type__": __type__, "__str__": True}))',
   ].join('\n');
 
-  const proc = spawnSync('python3', ['-c', script], {
-    encoding: 'utf-8',
-    timeout: 5000,
-    maxBuffer: 1024 * 1024,
-  });
+  const proc = spawnSync('python3', ['-c', script], pythonSpawnOptions);
 
   if (proc.error) {
     return { ok: false, value: '', error: proc.error.message };
@@ -68,11 +79,7 @@ function runPythonSnippet(userCode: string, expression: string): { ok: boolean; 
 
 function runPythonCodeOnly(userCode: string): { output: string; error: string | null } {
   const script = `${userCode}`;
-  const proc = spawnSync('python3', ['-c', script], {
-    encoding: 'utf-8',
-    timeout: 5000,
-    maxBuffer: 1024 * 1024,
-  });
+  const proc = spawnSync('python3', ['-c', script], pythonSpawnOptions);
 
   if (proc.status !== 0) {
     return { output: proc.stdout || '', error: (proc.stderr || 'Execution failed').trim() };
