@@ -6,6 +6,7 @@ import type { RunResult } from '@learncode/types';
 import { api } from '@/lib/api';
 import { ExecutionStoppedError, runPythonCode, terminateWorker } from '@/lib/pyodide';
 import { runJsCode, terminateJsWorker } from '@/lib/jsRuntime';
+import { runOnServer } from '@/lib/serverRuntime';
 import { useProblemStore } from '@/store/problemStore';
 import { useExecutionStore } from '@/store/executionStore';
 import { CodeEditor } from '@/components/editor/CodeEditor';
@@ -80,39 +81,34 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
   });
 
   async function handleRun() {
-    // Java and Rust have no in-browser runtime — they're compiled.
-    // Until phase 4 wires up a server-side /run endpoint for them,
-    // tell the user explicitly rather than fail mysteriously.
-    if (language === 'java' || language === 'rust') {
-      setOutput('');
-      setRunStderr(
-        `${language === 'java' ? 'Java' : 'Rust'} runs on the server — click Submit to compile and test against the problem's test cases.`,
-      );
-      setStatusMessage('Server-only language');
-      return;
-    }
-
     setRunning(true);
     setResult(null);
     setSuccessScore(null);
     setSubmitError(null);
     setRunStderr(null);
     const isJs = language === 'javascript';
+    const isCompiled = language === 'java' || language === 'rust';
     setStatusMessage(
-      isJs
-        ? 'Running code locally…'
-        : pyodideReady
+      isCompiled
+        ? `Compiling on server (${language})…`
+        : isJs
           ? 'Running code locally…'
-          : 'Setting up Python environment…',
+          : pyodideReady
+            ? 'Running code locally…'
+            : 'Setting up Python environment…',
     );
     // Split the stdin textarea into lines, dropping a single trailing empty
     // line (a typical artifact of pressing Enter after the last value).
     const stdinLines = stdinText.replace(/\n$/, '').split('\n');
     try {
-      const { output: out, error, stderr } = isJs
-        ? await runJsCode(code)
-        : await runPythonCode(code, stdinLines);
-      if (!isJs) setPyodideReady(true);
+      const result = isCompiled
+        ? // Java/Rust have no in-browser runtime — bounce through /run.
+          { ...(await runOnServer(language, code)), error: null }
+        : isJs
+          ? await runJsCode(code)
+          : await runPythonCode(code, stdinLines);
+      const { output: out, error, stderr } = result;
+      if (!isJs && !isCompiled) setPyodideReady(true);
       if (error) {
         // Worker-level fatal (Pyodide failed to load, etc.) — show in error pane.
         setRunStderr(error);

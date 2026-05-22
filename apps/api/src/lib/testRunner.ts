@@ -334,6 +334,20 @@ function runCodeOnly(language: Language, userCode: string) {
   }
 }
 
+/**
+ * Public wrapper used by the POST /run endpoint. Same dispatch as the
+ * test-case grader, but returns just the program's combined output
+ * with no test-case machinery. Renames `error` -> `stderr` to match the
+ * conventional naming on the client.
+ */
+export function runFreeForm(
+  language: Language,
+  code: string,
+): { output: string; stderr: string | null } {
+  const result = runCodeOnly(language, code);
+  return { output: result.output, stderr: result.error };
+}
+
 export function runTests(
   code: string,
   testCases: TestCaseInput[],

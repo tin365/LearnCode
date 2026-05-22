@@ -13,6 +13,7 @@ import { googleOAuthRoutes } from './routes/oauth-google.js';
 import { facebookOAuthRoutes } from './routes/oauth-facebook.js';
 import { passwordResetRoutes } from './routes/password-reset.js';
 import { problemRoutes } from './routes/problems.js';
+import { runRoutes } from './routes/run.js';
 import { progressRoutes } from './routes/progress.js';
 import { moduleRoutes } from './routes/modules.js';
 
@@ -95,6 +96,7 @@ export async function buildServer() {
   await fastify.register(googleOAuthRoutes);
   await fastify.register(facebookOAuthRoutes);
   await fastify.register(passwordResetRoutes);
+  await fastify.register(runRoutes);
   await fastify.register(problemRoutes);
   await fastify.register(progressRoutes);
   await fastify.register(moduleRoutes);
