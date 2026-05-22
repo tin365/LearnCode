@@ -6,9 +6,12 @@
 # Helmet already sets on the API side.
 #
 # CSP notes:
-# - 'unsafe-inline' on style-src is regrettable but needed for the
-#   `style={{...}}` props React components use in a few places.
-#   Removing would require a sweeping audit + refactor.
+# - 'unsafe-eval' on script-src and worker-src is unfortunate but
+#   required: Monaco's tokenizer compiles regex via `new Function()`
+#   (https://github.com/microsoft/monaco-editor/issues/1325), and
+#   Pyodide's bootstrap likewise uses eval-like constructs.
+# - 'unsafe-inline' on style-src is needed for React's style={{...}}
+#   props in a few places.
 # - worker-src includes blob: because Monaco bundles its editor worker
 #   as an inline blob URL via Vite's worker plugin.
 # - connect-src lists Sentry's EU ingest hosts explicitly. If you
@@ -19,7 +22,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.learncode.study https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com https://www.facebook.com
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.learncode.study https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com https://www.facebook.com
 
 # Pyodide runtime files are version-pinned in the path (we don't change
 # them until we upgrade Pyodide), so cache them aggressively. ~13 MB
