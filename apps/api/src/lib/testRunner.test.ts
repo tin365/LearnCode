@@ -29,4 +29,115 @@ describe('runTests', () => {
     ]);
     expect(result.passed).toBe(true);
   });
+
+  it('formats Python None as "None" (not "null")', () => {
+    const code = `def maybe():\n    return None`;
+    const result = runTests(code, [
+      { expected: 'None', isHidden: false, inputData: 'maybe()' },
+    ]);
+    expect(result.passed).toBe(true);
+  });
+
+  it('formats Python dicts as single-quoted JSON-like literals', () => {
+    const code = `def make():\n    return {"a": 1, "b": 2}`;
+    const result = runTests(code, [
+      { expected: "{'a':1,'b':2}", isHidden: false, inputData: 'make()' },
+    ]);
+    expect(result.passed).toBe(true);
+  });
+
+  it('formats nested dict-with-list correctly', () => {
+    const code = `def make():\n    return {"items": [1, 2, 3]}`;
+    const result = runTests(code, [
+      { expected: "{'items':[1,2,3]}", isHidden: false, inputData: 'make()' },
+    ]);
+    expect(result.passed).toBe(true);
+  });
+
+  it('strips parent process env from spawned python (security)', () => {
+    const sentinel = 'should-not-leak-' + Date.now();
+    process.env.SECRET_FIXTURE = sentinel;
+    try {
+      const code = `def check():\n    import os\n    return os.environ.get('SECRET_FIXTURE', 'STRIPPED')`;
+      const result = runTests(code, [
+        { expected: 'STRIPPED', isHidden: false, inputData: 'check()' },
+      ]);
+      expect(result.passed).toBe(true);
+    } finally {
+      delete process.env.SECRET_FIXTURE;
+    }
+  });
+});
+
+describe('runTests — JavaScript', () => {
+  it('passes a simple function-return test', () => {
+    const code = `function helloWorld() { return "Hello, World!"; }`;
+    const result = runTests(
+      code,
+      [{ inputData: 'helloWorld()', expected: '"Hello, World!"', isHidden: false }],
+      'javascript',
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('matches typeof and .length test cases', () => {
+    const code = `function helloWorld() { return "Hello, World!"; }`;
+    const result = runTests(
+      code,
+      [
+        { inputData: 'typeof helloWorld()', expected: '"string"', isHidden: false },
+        { inputData: 'helloWorld().length', expected: '13', isHidden: true },
+      ],
+      'javascript',
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails when JS function returns the wrong value', () => {
+    const code = `function greet(n) { return "Hi " + n; }`;
+    const result = runTests(
+      code,
+      [{ inputData: 'greet("Alice")', expected: '"Hello, Alice!"', isHidden: false }],
+      'javascript',
+    );
+    expect(result.passed).toBe(false);
+    expect(result.testResults[0].actual).toBe('"Hi Alice"');
+  });
+
+  it('captures a thrown error as the test result', () => {
+    const code = `function bad() { throw new Error("nope"); }`;
+    const result = runTests(
+      code,
+      [{ inputData: 'bad()', expected: '"ok"', isHidden: false }],
+      'javascript',
+    );
+    expect(result.passed).toBe(false);
+    expect(result.testResults[0].actual).toContain('nope');
+  });
+
+  it('handles arrays and objects via JSON.stringify', () => {
+    const code = `function make() { return { items: [1, 2, 3] }; }`;
+    const result = runTests(
+      code,
+      [{ inputData: 'make()', expected: '{"items":[1,2,3]}', isHidden: false }],
+      'javascript',
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('strips parent process env from spawned node (security)', () => {
+    const sentinel = 'should-not-leak-' + Date.now();
+    process.env.SECRET_FIXTURE = sentinel;
+    try {
+      const code = `function check() { return process.env.SECRET_FIXTURE || "STRIPPED"; }`;
+      const result = runTests(
+        code,
+        [{ inputData: 'check()', expected: '"STRIPPED"', isHidden: false }],
+        'javascript',
+      );
+      expect(result.passed).toBe(true);
+    } finally {
+      delete process.env.SECRET_FIXTURE;
+    }
+  });
 });

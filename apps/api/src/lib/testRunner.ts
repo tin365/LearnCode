@@ -14,6 +14,18 @@ export interface RunOutput {
   testResults: TestResult[];
 }
 
+export type Language = 'python' | 'javascript';
+
+function normaliseLanguage(value: string | null | undefined): Language {
+  // Defensive: anything we don't recognise falls back to Python (the
+  // historical default) so a typo'd seed file can't crash the grader.
+  return value === 'javascript' ? 'javascript' : 'python';
+}
+
+export function asLanguage(value: string | null | undefined): Language {
+  return normaliseLanguage(value);
+}
+
 function formatPythonValue(value: unknown): string {
   if (typeof value === 'boolean') return value ? 'True' : 'False';
   if (value === null || value === undefined) return 'None';
@@ -21,20 +33,24 @@ function formatPythonValue(value: unknown): string {
   return String(value);
 }
 
-// Common spawnSync options for every python3 invocation. Centralising
-// them so the env-stripping and cwd-confinement rules can't drift
-// between call sites. Subprocess attacks via absolute paths aren't
-// prevented by either knob — they need a real sandbox.
-const pythonSpawnOptions = {
+// Common spawnSync options for every subprocess. Centralising them so
+// the env-stripping and cwd-confinement rules can't drift between call
+// sites. Subprocess attacks via absolute paths aren't prevented by
+// either knob — they need a real sandbox.
+const subprocessSpawnOptions = {
   encoding: 'utf-8' as const,
   timeout: 5000,
   maxBuffer: 1024 * 1024,
   // Strip parent env (DATABASE_URL, JWT_SECRET, etc.) but keep PATH so
-  // python3 starts up quickly without scanning the whole filesystem.
+  // the interpreter starts up quickly without scanning the whole filesystem.
   env: { PATH: process.env.PATH ?? '' },
   // Confine relative file operations to /tmp.
   cwd: '/tmp',
 };
+
+// ---------------------------------------------------------------------------
+// Python
+// ---------------------------------------------------------------------------
 
 function runPythonSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
   // Use json.dumps directly on the result so the output is proper JSON, not repr().
@@ -50,7 +66,7 @@ function runPythonSnippet(userCode: string, expression: string): { ok: boolean; 
     '    print(__json__.dumps({"v": str(__result__), "__type__": __type__, "__str__": True}))',
   ].join('\n');
 
-  const proc = spawnSync('python3', ['-c', script], pythonSpawnOptions);
+  const proc = spawnSync('python3', ['-c', script], subprocessSpawnOptions);
 
   if (proc.error) {
     return { ok: false, value: '', error: proc.error.message };
@@ -78,8 +94,7 @@ function runPythonSnippet(userCode: string, expression: string): { ok: boolean; 
 }
 
 function runPythonCodeOnly(userCode: string): { output: string; error: string | null } {
-  const script = `${userCode}`;
-  const proc = spawnSync('python3', ['-c', script], pythonSpawnOptions);
+  const proc = spawnSync('python3', ['-c', userCode], subprocessSpawnOptions);
 
   if (proc.status !== 0) {
     return { output: proc.stdout || '', error: (proc.stderr || 'Execution failed').trim() };
@@ -87,14 +102,75 @@ function runPythonCodeOnly(userCode: string): { output: string; error: string | 
   return { output: (proc.stdout || '').trim(), error: null };
 }
 
-export function runTests(code: string, testCases: TestCaseInput[]): RunOutput {
-  const { output, error } = runPythonCodeOnly(code);
+// ---------------------------------------------------------------------------
+// JavaScript
+// ---------------------------------------------------------------------------
+
+function runJsSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
+  // Wrap the user expression so a thrown error is captured cleanly
+  // (exit 1 + stderr message) instead of taking the whole test batch
+  // down. Use process.stdout.write — no trailing newline — because the
+  // value IS the entire output we're comparing.
+  // JSON.stringify(undefined) returns the value `undefined`, not the
+  // string; the `?? "undefined"` keeps the protocol round-tripable.
+  const script = `${userCode}
+try {
+  const __result__ = (${expression});
+  const __json__ = JSON.stringify(__result__);
+  process.stdout.write(__json__ === undefined ? "undefined" : __json__);
+} catch (err) {
+  process.stderr.write(err && err.message ? err.message : String(err));
+  process.exit(1);
+}
+`;
+  const proc = spawnSync('node', ['-e', script], subprocessSpawnOptions);
+
+  if (proc.error) {
+    return { ok: false, value: '', error: proc.error.message };
+  }
+  if (proc.status !== 0) {
+    return { ok: false, value: '', error: (proc.stderr || proc.stdout || 'Execution failed').trim() };
+  }
+  return { ok: true, value: proc.stdout.trim() };
+}
+
+function runJsCodeOnly(userCode: string): { output: string; error: string | null } {
+  const proc = spawnSync('node', ['-e', userCode], subprocessSpawnOptions);
+
+  if (proc.status !== 0) {
+    return { output: proc.stdout || '', error: (proc.stderr || 'Execution failed').trim() };
+  }
+  return { output: (proc.stdout || '').trim(), error: null };
+}
+
+// ---------------------------------------------------------------------------
+// Dispatcher
+// ---------------------------------------------------------------------------
+
+function runSnippet(language: Language, userCode: string, expression: string) {
+  return language === 'javascript'
+    ? runJsSnippet(userCode, expression)
+    : runPythonSnippet(userCode, expression);
+}
+
+function runCodeOnly(language: Language, userCode: string) {
+  return language === 'javascript'
+    ? runJsCodeOnly(userCode)
+    : runPythonCodeOnly(userCode);
+}
+
+export function runTests(
+  code: string,
+  testCases: TestCaseInput[],
+  language: Language = 'python',
+): RunOutput {
+  const { output, error } = runCodeOnly(language, code);
   if (error && testCases.length === 0) {
     return { passed: false, output, error, testResults: [] };
   }
 
   const testResults: TestResult[] = testCases.map((tc) => {
-    const result = runPythonSnippet(code, tc.inputData);
+    const result = runSnippet(language, code, tc.inputData);
     if (!result.ok) {
       return {
         passed: false,
