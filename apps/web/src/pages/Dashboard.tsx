@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -8,6 +8,8 @@ import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { MobileModuleStrip } from '@/components/layout/MobileModuleStrip';
+import { MobileModuleDetail } from '@/components/layout/MobileModuleDetail';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +88,21 @@ export function Dashboard() {
 
   const resume = useMemo(() => findResumeTarget(modules, isAdmin), [modules, isAdmin]);
 
+  // Mobile-only selection. Defaults to resume target's module, else the
+  // first unlocked module, else M0. Updated when modules first load.
+  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  useEffect(() => {
+    if (selectedModuleId !== null || modules.length === 0) return;
+    const resumeOrderIndex =
+      resume?.kind === 'lesson' ? resume.moduleOrderIndex : resume?.moduleOrderIndex;
+    const defaultId =
+      modules.find((m) => m.orderIndex === resumeOrderIndex)?.id ??
+      modules.find((m) => isAdmin || m.isUnlocked)?.id ??
+      modules[0].id;
+    setSelectedModuleId(defaultId);
+  }, [modules, resume, isAdmin, selectedModuleId]);
+  const selectedModule = modules.find((m) => m.id === selectedModuleId) ?? null;
+
   const content = (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
@@ -121,10 +138,30 @@ export function Dashboard() {
         </PanelGroup>
       </div>
 
-      {/* Mobile (< md): top bar + scroll */}
+      {/* Mobile (< md): top bar + narrow module strip + selected module detail */}
       <div className="flex h-full flex-col bg-slate-50 md:hidden">
         <MobileHeader />
-        <main className="flex-1 overflow-auto p-4">{content}</main>
+        {isLoading ? (
+          <p className="p-4 text-sm text-muted-foreground">Loading…</p>
+        ) : (
+          <div className="flex flex-1 overflow-hidden">
+            <MobileModuleStrip
+              modules={modules}
+              selectedId={selectedModuleId}
+              isAdmin={isAdmin}
+              onSelect={setSelectedModuleId}
+            />
+            <main className="flex-1 overflow-y-auto">
+              {selectedModule ? (
+                <MobileModuleDetail module={selectedModule} isAdmin={isAdmin} />
+              ) : (
+                <p className="p-4 text-sm text-muted-foreground">
+                  Select a module from the left.
+                </p>
+              )}
+            </main>
+          </div>
+        )}
       </div>
     </div>
   );
