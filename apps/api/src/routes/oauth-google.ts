@@ -1,12 +1,7 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import oauthPlugin, { type OAuth2Namespace } from '@fastify/oauth2';
 import { env } from '../config/env.js';
-import {
-  COOKIE_NAME,
-  type ClientKind,
-  issueRefreshToken,
-  refreshLifetimeMs,
-} from '../lib/auth.js';
+import { issueExchangeCode } from '../lib/oauthExchange.js';
 
 // @fastify/oauth2 decorates the Fastify instance using the `name` config.
 declare module 'fastify' {
@@ -21,24 +16,6 @@ interface GoogleUserInfo {
   email_verified: boolean;
   name?: string;
   picture?: string;
-}
-
-function setRefreshCookie(
-  reply: FastifyReply,
-  plaintext: string,
-  clientKind: ClientKind,
-) {
-  reply.setCookie(COOKIE_NAME, plaintext, {
-    path: '/auth',
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    // 'lax' (not 'strict') because the cookie is set on a top-level
-    // navigation back from accounts.google.com. Browsers won't send a
-    // 'strict' cookie on the redirect-initiated request that follows.
-    sameSite: 'lax',
-    signed: true,
-    maxAge: Math.floor(refreshLifetimeMs(clientKind) / 1000),
-  });
 }
 
 export async function googleOAuthRoutes(fastify: FastifyInstance) {
@@ -136,26 +113,15 @@ export async function googleOAuthRoutes(fastify: FastifyInstance) {
       }
     }
 
-    // OAuth is web-only; desktop falls back to password login.
-    const clientKind: ClientKind = 'web';
-    const refresh = await issueRefreshToken(fastify.prisma, {
-      userId: user.id,
-      clientKind,
-      userAgent: request.headers['user-agent'] ?? null,
-      ipAddress: request.ip,
-    });
-    setRefreshCookie(reply, refresh.plaintext, clientKind);
-
-    const accessToken = fastify.jwt.sign({
-      userId: user.id,
-      email: user.email,
-      isAdmin: user.isAdmin,
-    });
-
-    // Fragment, not query — fragments aren't sent to the server and don't
-    // appear in standard webserver access logs.
+    // Hand off via a one-time exchange code instead of putting the
+    // access token in the URL fragment. The SPA POSTs the code to
+    // /auth/oauth-exchange, which issues the access token + refresh
+    // cookie at that point. Eliminates the fragment leak surface
+    // (history, location.hash, screenshots, extensions). See
+    // TO_UPGRADE.md P0 #2.
+    const code = await issueExchangeCode(fastify.prisma, user.id);
     return reply.redirect(
-      `${frontendBase}/auth/oauth-complete#access=${encodeURIComponent(accessToken)}`,
+      `${frontendBase}/auth/oauth-complete?code=${encodeURIComponent(code)}`,
     );
   });
 }

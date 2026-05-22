@@ -1,12 +1,7 @@
-import type { FastifyInstance, FastifyReply } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import oauthPlugin, { type OAuth2Namespace } from '@fastify/oauth2';
 import { env } from '../config/env.js';
-import {
-  COOKIE_NAME,
-  type ClientKind,
-  issueRefreshToken,
-  refreshLifetimeMs,
-} from '../lib/auth.js';
+import { issueExchangeCode } from '../lib/oauthExchange.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -18,21 +13,6 @@ interface FacebookUserInfo {
   id: string;
   email?: string;
   name?: string;
-}
-
-function setRefreshCookie(
-  reply: FastifyReply,
-  plaintext: string,
-  clientKind: ClientKind,
-) {
-  reply.setCookie(COOKIE_NAME, plaintext, {
-    path: '/auth',
-    httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    signed: true,
-    maxAge: Math.floor(refreshLifetimeMs(clientKind) / 1000),
-  });
 }
 
 export async function facebookOAuthRoutes(fastify: FastifyInstance) {
@@ -141,23 +121,11 @@ export async function facebookOAuthRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const clientKind: ClientKind = 'web';
-    const refresh = await issueRefreshToken(fastify.prisma, {
-      userId: user.id,
-      clientKind,
-      userAgent: request.headers['user-agent'] ?? null,
-      ipAddress: request.ip,
-    });
-    setRefreshCookie(reply, refresh.plaintext, clientKind);
-
-    const accessToken = fastify.jwt.sign({
-      userId: user.id,
-      email: user.email,
-      isAdmin: user.isAdmin,
-    });
-
+    // One-time exchange code instead of a JWT in the URL fragment.
+    // See TO_UPGRADE.md P0 #2 and lib/oauthExchange.ts.
+    const code = await issueExchangeCode(fastify.prisma, user.id);
     return reply.redirect(
-      `${frontendBase}/auth/oauth-complete#access=${encodeURIComponent(accessToken)}`,
+      `${frontendBase}/auth/oauth-complete?code=${encodeURIComponent(code)}`,
     );
   });
 }

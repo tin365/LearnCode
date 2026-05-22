@@ -19,6 +19,10 @@ export const hintRevealSchema = z.object({
   problemId: z.number().int().positive(),
 });
 
+export const oauthExchangeSchema = z.object({
+  code: z.string().min(1).max(200),
+});
+
 export const runCodeSchema = z.object({
   language: z.enum(['python', 'javascript', 'java', 'rust']),
   // Cap size to keep the server from accepting megabytes of bytecode-sized
@@ -41,3 +45,4 @@ export type SubmitProgressInput = z.infer<typeof submitProgressSchema>;
 export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchema>;
 export type PasswordResetConfirmInput = z.infer<typeof passwordResetConfirmSchema>;
 export type RunCodeInput = z.infer<typeof runCodeSchema>;
+export type OAuthExchangeInput = z.infer<typeof oauthExchangeSchema>;

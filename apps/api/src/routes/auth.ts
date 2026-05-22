@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcrypt';
-import { registerSchema, loginSchema } from '@learncode/validators';
+import { registerSchema, loginSchema, oauthExchangeSchema } from '@learncode/validators';
 import type { AuthResponse, RefreshResponse } from '@learncode/types';
 import {
   COOKIE_NAME,
@@ -13,6 +13,7 @@ import {
   revokeFamily,
   rotateRefreshToken,
 } from '../lib/auth.js';
+import { consumeExchangeCode } from '../lib/oauthExchange.js';
 import { env } from '../config/env.js';
 
 const BCRYPT_COST = 12;
@@ -208,6 +209,44 @@ export async function authRoutes(fastify: FastifyInstance) {
         refreshToken: clientKind === 'desktop' ? result.plaintext : undefined,
       };
       return response;
+    },
+  );
+
+  fastify.post(
+    '/auth/oauth-exchange',
+    { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const parsed = oauthExchangeSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: parsed.error.flatten() });
+      }
+
+      // The exchange code was issued at the OAuth callback (Google /
+      // Facebook). Consume it atomically — a second tab racing the
+      // first will lose, no double-session issue.
+      const outcome = await consumeExchangeCode(fastify.prisma, parsed.data.code);
+      if (outcome.kind !== 'ok' || !outcome.userId) {
+        return reply
+          .status(400)
+          .send({ error: 'Invalid or expired exchange code' });
+      }
+
+      const user = await fastify.prisma.user.findUnique({
+        where: { id: outcome.userId },
+      });
+      if (!user) {
+        return reply.status(400).send({ error: 'User no longer exists' });
+      }
+
+      const clientKind = readClientKind(request);
+      const refresh = await issueRefreshToken(fastify.prisma, {
+        userId: user.id,
+        clientKind,
+        userAgent: request.headers['user-agent'] ?? null,
+        ipAddress: request.ip,
+      });
+      if (clientKind === 'web') setRefreshCookie(reply, refresh.plaintext, clientKind);
+      return buildAuthResponse(fastify, user, refresh, clientKind);
     },
   );
 

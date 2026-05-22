@@ -21,6 +21,7 @@ model User {
   refreshTokens  RefreshToken[]
   oauthAccounts  OAuthAccount[]
   passwordResets PasswordReset[]
+  oauthExchangeCodes OAuthExchangeCode[]
 
   @@map("users")
 }
@@ -50,6 +51,26 @@ model PasswordReset {
 
   @@index([userId])
   @@map("password_resets")
+}
+
+// One-time exchange codes for the OAuth flow. After the provider
+// callback succeeds the server creates a row, redirects the browser
+// to /auth/oauth-complete?code=<plaintext>, the SPA POSTs the code
+// to /auth/oauth-exchange, and we mark usedAt + return the access
+// token + refresh cookie. Replaces the previous "JWT in URL fragment"
+// pattern (TO_UPGRADE.md P0 #2). 60 s TTL; the SPA exchange is
+// milliseconds.
+model OAuthExchangeCode {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String    @unique @map("code_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("oauth_exchange_codes")
 }
 
 model RefreshToken {
