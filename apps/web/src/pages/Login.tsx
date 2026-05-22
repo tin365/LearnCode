@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
 import { ContinueWithFacebook } from '@/components/auth/ContinueWithFacebook';
+import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
 
 export function Login() {
   const navigate = useNavigate();
@@ -56,6 +57,7 @@ export function Login() {
           <CardTitle>Log in to LearnCode</CardTitle>
         </CardHeader>
         <CardContent>
+          <InAppBrowserNotice />
           <div className="space-y-2">
             <ContinueWithGoogle />
             <ContinueWithFacebook />
