@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MobileModuleStrip } from '@/components/layout/MobileModuleStrip';
 import { MobileModuleDetail } from '@/components/layout/MobileModuleDetail';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { displayOrderIndex, useLanguagePref } from '@/hooks/useLanguagePref';
@@ -101,7 +102,14 @@ export function LanguageView() {
     if (language) setLanguagePref(language);
   }, [language, setLanguagePref]);
 
-  const { data: allModules = [], isLoading } = useQuery({
+  const {
+    data: allModules = [],
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['modules'],
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
     enabled: language !== null,
@@ -167,7 +175,14 @@ export function LanguageView() {
         </div>
       </header>
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorState
+          compact
+          message={error instanceof Error ? error.message : null}
+          onRetry={refetch}
+          retrying={isFetching}
+        />
+      ) : isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
       ) : (
         <>
@@ -206,7 +221,16 @@ export function LanguageView() {
           </Link>
           <span className="text-xs font-semibold text-slate-700">{langLabel}</span>
         </div>
-        {isLoading ? (
+        {isError ? (
+          <div className="p-4">
+            <ErrorState
+              compact
+              message={error instanceof Error ? error.message : null}
+              onRetry={refetch}
+              retrying={isFetching}
+            />
+          </div>
+        ) : isLoading ? (
           <p className="p-4 text-sm text-muted-foreground">Loading…</p>
         ) : (
           <div className="flex flex-1 overflow-hidden">

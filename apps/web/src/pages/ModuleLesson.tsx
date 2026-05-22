@@ -5,6 +5,7 @@ import type { Lesson, ModuleWithProgress } from '@learncode/types';
 import { api } from '@/lib/api';
 import { SectionRenderer } from '@/components/lessons/SectionRenderer';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { ErrorState } from '@/components/ui/ErrorState';
 
 export function ModuleLesson() {
   const { moduleId: moduleIdParam } = useParams();
@@ -12,7 +13,14 @@ export function ModuleLesson() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: lesson, isLoading } = useQuery<Lesson, Error>({
+  const {
+    data: lesson,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery<Lesson, Error>({
     queryKey: ['lesson', moduleId],
     queryFn: () => api.get<Lesson>(`/modules/${moduleId}/lesson`),
     enabled: Number.isFinite(moduleId) && moduleId > 0,
@@ -37,6 +45,20 @@ export function ModuleLesson() {
   }
 
   if (isLoading) return <ReadingViewSkeleton />;
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <MobileHeader />
+        <ErrorState
+          title="Couldn't load this lesson"
+          message={error?.message ?? null}
+          onRetry={refetch}
+          retrying={isFetching}
+        />
+      </div>
+    );
+  }
 
   if (!lesson) {
     return (

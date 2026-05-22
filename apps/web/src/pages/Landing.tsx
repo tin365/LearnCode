@@ -6,6 +6,7 @@ import type { ModuleWithProgress, ProblemLanguage } from '@learncode/types';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useLanguagePref } from '@/hooks/useLanguagePref';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +25,16 @@ export function Landing() {
   const user = useAuthStore((s) => s.user);
   const [lastLanguage] = useLanguagePref();
 
-  const { data: modules = [] } = useQuery({
+  // Landing falls through to render even before /modules resolves — the
+  // chips just show as "Coming soon" briefly until data arrives. Only the
+  // error case needs a dedicated branch.
+  const {
+    data: modules = [],
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['modules'],
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
   });
@@ -55,6 +65,19 @@ export function Landing() {
     }
     return null;
   }, [stats, lastLanguage]);
+
+  if (isError) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-50">
+        <MobileHeader />
+        <ErrorState
+          message={error instanceof Error ? error.message : null}
+          onRetry={refetch}
+          retrying={isFetching}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">

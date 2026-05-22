@@ -11,6 +11,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { LearningPanel } from '@/components/layout/LearningPanel';
 import { CodePanel } from '@/components/layout/CodePanel';
 import { MobileWorkspace } from '@/components/layout/MobileWorkspace';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { useMediaQuery, MOBILE_QUERY } from '@/hooks/useMediaQuery';
 
 function isUnlocked(problems: Problem[], progress: Progress[], target: Problem): boolean {
@@ -38,7 +39,14 @@ export function Workspace() {
     queryFn: () => api.get<Problem[]>('/problems'),
   });
 
-  const { data: problem, isLoading } = useQuery({
+  const {
+    data: problem,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['problem', problemId],
     queryFn: () => api.get<Problem>(`/problems/${problemId}`),
     enabled: problemId > 0,
@@ -73,6 +81,17 @@ export function Workspace() {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">Loading workspace…</div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <ErrorState
+        title="Couldn't load this problem"
+        message={error instanceof Error ? error.message : null}
+        onRetry={refetch}
+        retrying={isFetching}
+      />
     );
   }
 

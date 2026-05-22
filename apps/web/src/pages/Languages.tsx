@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2 } from 'lucide-react';
 import type { ModuleWithProgress, ProblemLanguage } from '@learncode/types';
 import { api } from '@/lib/api';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { ErrorState } from '@/components/ui/ErrorState';
 import { cn } from '@/lib/utils';
 
 interface LanguageMeta {
@@ -21,7 +22,14 @@ const LANGUAGES: LanguageMeta[] = [
 ];
 
 export function Languages() {
-  const { data: modules = [], isLoading } = useQuery({
+  const {
+    data: modules = [],
+    isLoading,
+    isError,
+    error,
+    isFetching,
+    refetch,
+  } = useQuery({
     queryKey: ['modules'],
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
   });
@@ -64,7 +72,16 @@ export function Languages() {
           Each curriculum runs from M0 (the basics) to M11 (debugging real code).
         </p>
 
-        {isLoading ? (
+        {isError ? (
+          <div className="mt-8">
+            <ErrorState
+              compact
+              message={error instanceof Error ? error.message : null}
+              onRetry={refetch}
+              retrying={isFetching}
+            />
+          </div>
+        ) : isLoading ? (
           <p className="mt-8 text-sm text-muted-foreground">Loading…</p>
         ) : (
           <ul className="mt-8 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
