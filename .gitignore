@@ -4,3 +4,9 @@ dist
 .env
 *.log
 .DS_Store
+*.tsbuildinfo
+
+# Markdown lives locally only — design notes, security backlogs, etc.
+# Force-add with `git add -f` if you genuinely need a tracked .md
+# (e.g. a public README for an open-source split-off).
+*.md
