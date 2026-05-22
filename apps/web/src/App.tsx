@@ -7,7 +7,9 @@ import { bootstrapSession } from '@/lib/api';
 import { AppShell } from '@/components/layout/AppShell';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
-import { Dashboard } from '@/pages/Dashboard';
+import { Landing } from '@/pages/Landing';
+import { Languages } from '@/pages/Languages';
+import { LanguageView } from '@/pages/LanguageView';
 import { Workspace } from '@/pages/Workspace';
 import { ModuleLesson } from '@/pages/ModuleLesson';
 import { OAuthComplete } from '@/pages/OAuthComplete';
@@ -58,7 +60,10 @@ export default function App() {
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/auth/reset-password" element={<ResetPassword />} />
           <Route element={<AppShell />}>
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Landing → Languages → Module-view drill-down */}
+            <Route path="/dashboard" element={<Landing />} />
+            <Route path="/languages" element={<Languages />} />
+            <Route path="/learn/:language" element={<LanguageView />} />
             <Route path="/workspace/:id" element={<Workspace />} />
             <Route path="/module/:moduleId/lesson" element={<ModuleLesson />} />
           </Route>
