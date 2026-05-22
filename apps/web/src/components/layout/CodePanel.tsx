@@ -90,25 +90,30 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
         setStatusMessage('Run finished');
       }
     } catch (err) {
-      if (err instanceof ExecutionStoppedError) {
-        setOutput('⏹ Stopped');
-        setStatusMessage('Stopped');
-      } else {
-        const message = err instanceof Error ? err.message : 'Run failed';
-        setOutput(message);
-        setStatusMessage(message);
-      }
+      // handleStop already wrote the "Stopped" state synchronously, so
+      // this branch just swallows the rejection — no need to re-render.
+      if (err instanceof ExecutionStoppedError) return;
+      const message = err instanceof Error ? err.message : 'Run failed';
+      setOutput(message);
+      setStatusMessage(message);
     } finally {
       setRunning(false);
     }
   }
 
   function handleStop() {
+    // Set the final state synchronously so the UI flips immediately,
+    // not on the next microtask when the rejected Promise propagates.
+    // terminateWorker still rejects the in-flight request, but
+    // handleRun's catch is a no-op now that we've already done the work.
     terminateWorker();
-    // Next call to runPythonCode will spin up a fresh worker — set the
-    // ready flag back to false so the status message reflects the
-    // cold-start cost.
     setPyodideReady(false);
+    setRunning(false);
+    setResult(null);
+    setSuccessScore(null);
+    setSubmitError(null);
+    setOutput('⏹ Stopped');
+    setStatusMessage('Stopped');
   }
 
   async function handleSubmit() {
