@@ -43,16 +43,20 @@ export function CollapsibleModuleSidebar() {
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
   });
 
-  // Scope the sidebar to the current problem's language. The user is
-  // working inside one curriculum at a time; mixing both would clutter
-  // the nav and confuse the M0–M11 numbering.
+  // Scope the sidebar to the active language. Two sources, in order:
+  //   1. `:language` URL param when on /learn/:language (LanguageView).
+  //   2. The language of the current problem when on /workspace/:id.
+  // Mixing curricula would clutter the nav and confuse the M0-M11
+  // numbering, so we always filter to one.
+  const { language: languageParam } = useParams<{ language?: string }>();
   const currentModuleLanguage = useMemo(() => {
+    if (languageParam) return languageParam;
     if (currentProblemId == null) return null;
     return (
       allModules.find((m) => m.problems.some((p) => p.id === currentProblemId))
         ?.language ?? null
     );
-  }, [allModules, currentProblemId]);
+  }, [allModules, currentProblemId, languageParam]);
   const modules = currentModuleLanguage
     ? allModules.filter((m) => m.language === currentModuleLanguage)
     : allModules;
