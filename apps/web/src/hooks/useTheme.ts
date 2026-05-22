@@ -6,9 +6,9 @@ const STORAGE_KEY = 'lc:theme';
 const DARK_MEDIA = '(prefers-color-scheme: dark)';
 
 function read(): Theme {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'light';
   const v = window.localStorage.getItem(STORAGE_KEY);
-  return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+  return v === 'light' || v === 'dark' || v === 'system' ? v : 'light';
 }
 
 /** Resolve a Theme to the concrete light/dark string the page should
