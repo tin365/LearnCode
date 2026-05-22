@@ -162,6 +162,33 @@ can't reconstruct "when did this happen". Add an `audit_events`
 table with `(userId, action, metadata, createdAt, ipAddress,
 userAgent)`.
 
+#### 13. Login timing leak — bcrypt skipped for unknown emails
+
+`POST /auth/login` returns 401 immediately when `findUnique` yields no
+user, *without* calling `bcrypt.compare`. Response time on
+"unknown email" is ~5–10 ms; on "known email, wrong password" it's
+~80–150 ms (bcrypt cost 12). An attacker can enumerate registered
+emails by timing the responses.
+
+Fix: when the user isn't found, still run bcrypt against a fixed
+dummy hash so the timing is uniform.
+
+#### 14. Request bodies may be logged in cleartext
+
+Fastify's default logger respects `serializers` for the request, but
+the access-log line written by `pino-http` can include the body
+depending on configuration. **Audit** `apps/api/src/server.ts` and
+the Sentry integration — `POST /auth/login`, `/auth/register`,
+`/auth/password-reset/confirm`, `/auth/password-reset/request` must
+NOT have their bodies in logs (would leak passwords + reset tokens).
+
+#### 15. No `security.txt` / vulnerability disclosure policy
+
+Add `apps/web/public/.well-known/security.txt` per RFC 9116 so
+security researchers can report issues responsibly. Minimal content:
+contact email, encryption key URL (optional), policy URL,
+expiration.
+
 ### P2 — Worth knowing about
 
 - **JWT_SECRET is symmetric (HS256)** — if the API host is
@@ -179,6 +206,18 @@ userAgent)`.
   password reset.
 - **No timing-safe comparison** for token-hash lookup. Negligible in
   practice (network jitter dominates), but documenting.
+- **No Dependabot / `npm audit` in CI** — silent dependency CVEs.
+  Cheapest fix: enable Dependabot in repo settings, add an
+  `npm audit --audit-level=high` step to CI.
+- **No secret-scanning enabled on the repo** — GitHub offers it
+  free; flip the toggle in Settings → Security.
+- **Public key pinning / HPKP** — too brittle to recommend in 2026.
+  Skip.
+- **No bot-protection on `/run`** — authenticated, rate-limited at
+  12/min/user, but an attacker with a free account can still use it
+  as a compute proxy. Detect + ban on suspicious patterns.
+- **Admin role has no audit log** — see #12, but worth restating
+  that admin-bypassed unlock checks aren't recorded anywhere.
 
 ---
 
@@ -254,6 +293,15 @@ A quick `axe-core` pass on key pages will surface:
 - **Auto-save indicator** ("Saved 3s ago"). Code currently lives in
   Zustand and is lost on tab close. Persist to localStorage per
   problem.
+- **Editor preferences**: font size, theme (light/dark/high-contrast),
+  Vim/Emacs keybinding mode (Monaco supports both).
+- **AI-powered hints** via the Anthropic API — when the static
+  3-hint set is exhausted, offer "Get a custom hint from Claude"
+  that takes the user's current code + the problem and explains
+  what's likely wrong. Charge against a per-user quota.
+- **Problem feedback**: tiny "Was this too easy / about right /
+  too hard" widget at the end of every passed problem. Lets you
+  calibrate the curriculum.
 
 #### Mobile gaps
 - **PWA manifest + `_headers` cache rules**, "Add to Home Screen"
@@ -270,6 +318,14 @@ A quick `axe-core` pass on key pages will surface:
   (currently just "Loading…" text).
 - **Empty states**: "You haven't started any problems yet" with a
   link back to a starter module.
+- **Top-of-page route-transition progress bar** (e.g.,
+  `nprogress`-style) so navigation feels responsive on slow networks.
+- **Notification center** — bell icon in the header surfacing:
+  achievements unlocked, new modules released, weekly progress
+  email opt-in prompts.
+- **i18n / localisation** — currently English-only. `react-intl` or
+  `i18next` lets you ship at least Bahasa Malaysia + Mandarin given
+  the likely audience.
 
 ### Low value — only if you're polishing
 
@@ -290,6 +346,68 @@ A quick `axe-core` pass on key pages will surface:
 - Multi-file problems (medium effort).
 - A real **Playground** (no test cases, just code + Run + stdin) on
   its own route.
+- **Lesson text-to-speech** — read the lesson aloud (Web Speech API
+  is free and offline). Big accessibility + commuter-friendly win.
+- **Inline code execution in lessons** — let "try it yourself"
+  blocks run without leaving the lesson page.
+
+---
+
+## ⚙️ Operations / DX
+
+Items that aren't user-facing but compound over time. None are
+urgent, all are cheap.
+
+- **Postgres backups** — Neon's free tier has point-in-time
+  restore; verify it's enabled. Otherwise schedule a nightly
+  `pg_dump` to S3 / Backblaze.
+- **Dependabot + npm audit in CI** (also a P2 security item).
+- **Bundle-size budget** — Vite has a `chunkSizeWarningLimit`. Set
+  it and fail CI on regressions.
+- **Test coverage tracking** — vitest's `--coverage` to a known
+  threshold (start at 50 %, ratchet up).
+- **Preview deploys per PR** — Cloudflare Pages already does this
+  for the web; add the API too (Render preview environments cost
+  per-PR but exist on paid plans).
+- **Storybook** for `components/ui` — catches visual regressions
+  and doubles as a design reference. Useful once a designer joins.
+- **Structured access logs** — Fastify already emits JSON via
+  pino; ship them somewhere greppable (Logtail, Better Stack,
+  Axiom — all have free tiers).
+- **Sandbox monitoring** — track per-user `/run` and `/progress/submit`
+  call counts in Prometheus / a counter table. Spot abuse early.
+- **Health-checked dependencies** — `/health` only pings Postgres.
+  Add Resend, Sentry, OAuth providers (lightweight pings) so an
+  outage in any of them paints the right status.
+
+---
+
+## ⚖️ Compliance / legal
+
+If you ever pick up paying users or EU traffic, these go from
+"nice" to "required". Easier to set them up while the user base is
+small.
+
+- **Privacy policy** — what data you collect, why, how long, who
+  you share it with. Required for OAuth provider review (Google
+  flagged this if your app ever leaves "Testing" mode).
+- **Terms of service** — acceptable-use policy specifically for
+  code execution ("don't crypto-mine, don't attack third parties,
+  don't upload illegal content"). Backs up future bans.
+- **Cookie consent banner** — required under EU ePrivacy + GDPR.
+  Only your refresh-token cookie is strictly necessary; Sentry is
+  the only "tracking" cookie that needs consent.
+- **GDPR data-export endpoint** — `GET /me/data-export` that emits
+  a JSON of all of a user's data (profile, progress, OAuth links,
+  refresh-token metadata). EU users have a legal right to this
+  within 30 days of request.
+- **GDPR / CCPA delete-account endpoint** — already on the UI/UX
+  list; surface here too because compliance.
+- **Accessibility statement** — required in some jurisdictions
+  (US public-sector, EU public-sector). Link from footer.
+- **DMCA contact** — if user-uploaded content is ever a thing.
+- **Age gate** — if you market to under-13s, COPPA applies and the
+  rules tighten considerably.
 
 ---
 
