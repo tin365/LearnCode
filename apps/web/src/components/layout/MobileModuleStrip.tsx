@@ -1,6 +1,7 @@
 import { CheckCircle2, Lock } from 'lucide-react';
 import type { ModuleWithProgress } from '@learncode/types';
 import { cn } from '@/lib/utils';
+import { displayOrderIndex } from '@/hooks/useLanguagePref';
 
 interface MobileModuleStripProps {
   modules: ModuleWithProgress[];
@@ -33,7 +34,7 @@ export function MobileModuleStrip({
             key={mod.id}
             onClick={() => onSelect(mod.id)}
             disabled={locked}
-            title={`M${mod.orderIndex} · ${mod.title}`}
+            title={`M${displayOrderIndex(mod.orderIndex)} · ${mod.title}`}
             className={cn(
               'mx-1 flex flex-col items-center justify-center rounded-md py-2 text-[11px] font-semibold transition-colors',
               active && 'bg-blue-600 text-white',
@@ -41,7 +42,7 @@ export function MobileModuleStrip({
               locked && 'cursor-not-allowed text-slate-300',
             )}
           >
-            <span>M{mod.orderIndex}</span>
+            <span>M{displayOrderIndex(mod.orderIndex)}</span>
             {locked ? (
               <Lock className="mt-0.5 h-3 w-3" />
             ) : complete ? (

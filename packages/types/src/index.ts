@@ -117,6 +117,8 @@ export interface HintsState {
 export interface ModuleWithProgress {
   id: number;
   orderIndex: number;
+  /** Per-language curriculum slot — JS module 1 is orderIndex 101, displayed as M1. */
+  language: ProblemLanguage;
   title: string;
   description: string;
   estimatedMinutes: number;

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { displayOrderIndex } from '@/hooks/useLanguagePref';
 import {
   BookOpen,
+  Bug,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -36,10 +38,24 @@ export function CollapsibleModuleSidebar() {
   const isAdmin = useAuthStore((s) => s.user?.isAdmin ?? false);
   const [manuallyExpanded, setManuallyExpanded] = useState<Set<number>>(new Set());
 
-  const { data: modules = [], isLoading } = useQuery({
+  const { data: allModules = [], isLoading } = useQuery({
     queryKey: ['modules'],
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
   });
+
+  // Scope the sidebar to the current problem's language. The user is
+  // working inside one curriculum at a time; mixing both would clutter
+  // the nav and confuse the M0–M11 numbering.
+  const currentModuleLanguage = useMemo(() => {
+    if (currentProblemId == null) return null;
+    return (
+      allModules.find((m) => m.problems.some((p) => p.id === currentProblemId))
+        ?.language ?? null
+    );
+  }, [allModules, currentProblemId]);
+  const modules = currentModuleLanguage
+    ? allModules.filter((m) => m.language === currentModuleLanguage)
+    : allModules;
 
   const autoExpandModuleId = useMemo(() => {
     if (currentProblemId == null) return null;
@@ -111,7 +127,7 @@ function ModuleItem({ module: mod, isExpanded, onToggle, currentProblemId, isAdm
       >
         <HeaderIcon className="h-4 w-4 shrink-0" />
         <span className="flex-1 truncate font-medium">
-          M{mod.orderIndex}: {mod.title}
+          M{displayOrderIndex(mod.orderIndex)}: {mod.title}
         </span>
         {mod.totalCount > 0 && (
           <span className="shrink-0 text-xs text-slate-500">
@@ -142,7 +158,7 @@ function ModuleItem({ module: mod, isExpanded, onToggle, currentProblemId, isAdm
               <ProblemRow
                 key={p.id}
                 problem={p}
-                moduleOrderIndex={mod.orderIndex}
+                moduleOrderIndex={displayOrderIndex(mod.orderIndex)}
                 isLocked={!isAdmin && !prevPassed}
                 isCurrent={p.id === currentProblemId}
                 onSelect={() => navigate(`/workspace/${p.id}`)}
@@ -189,6 +205,11 @@ function ProblemRow({
       <span className="flex-1 truncate">
         {moduleOrderIndex}.{problem.orderIndex} {problem.title}
       </span>
+      {problem.type === 'DEBUG' && (
+        <span title="Broken code — fix the bug" className="shrink-0">
+          <Bug className="h-3 w-3 text-amber-600" aria-label="Debug problem" />
+        </span>
+      )}
       {passed && score != null && (
         <span className="shrink-0 text-xs font-medium text-emerald-600">{score}pt</span>
       )}

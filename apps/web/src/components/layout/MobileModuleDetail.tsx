@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { BookOpen, CheckCircle2, Circle, Lock } from 'lucide-react';
 import type { ModuleWithProgress } from '@learncode/types';
 import { cn } from '@/lib/utils';
+import { displayOrderIndex } from '@/hooks/useLanguagePref';
 
 interface MobileModuleDetailProps {
   module: ModuleWithProgress;
@@ -22,7 +23,7 @@ export function MobileModuleDetail({ module: mod, isAdmin }: MobileModuleDetailP
     <div className="space-y-4 p-4">
       <header>
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-          Module {mod.orderIndex}
+          Module {displayOrderIndex(mod.orderIndex)}
         </p>
         <h1 className="mt-0.5 text-xl font-bold text-slate-900">{mod.title}</h1>
         <p className="mt-2 text-sm text-slate-600">{mod.description}</p>
@@ -100,7 +101,7 @@ export function MobileModuleDetail({ module: mod, isAdmin }: MobileModuleDetailP
                           <Circle className="h-4 w-4 shrink-0 text-slate-300" />
                         )}
                         <span className="truncate text-sm text-slate-800">
-                          {mod.orderIndex}.{p.orderIndex} {p.title}
+                          {displayOrderIndex(mod.orderIndex)}.{p.orderIndex} {p.title}
                         </span>
                       </span>
                       <span

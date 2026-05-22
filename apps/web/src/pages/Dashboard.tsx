@@ -10,8 +10,11 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MobileModuleStrip } from '@/components/layout/MobileModuleStrip';
 import { MobileModuleDetail } from '@/components/layout/MobileModuleDetail';
+import { LanguagePicker } from '@/components/layout/LanguagePicker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { displayOrderIndex, useLanguagePref } from '@/hooks/useLanguagePref';
+import type { ProblemLanguage } from '@learncode/types';
 
 function getDisplayName(email: string): string {
   return email.split('@')[0];
@@ -71,11 +74,31 @@ function findResumeTarget(
 export function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.isAdmin ?? false;
+  const [language, setLanguage] = useLanguagePref();
 
-  const { data: modules = [], isLoading } = useQuery({
+  const { data: allModules = [], isLoading } = useQuery({
     queryKey: ['modules'],
     queryFn: () => api.get<ModuleWithProgress[]>('/modules'),
   });
+
+  const availableLanguages = useMemo<ProblemLanguage[]>(() => {
+    const set = new Set<ProblemLanguage>();
+    for (const m of allModules) set.add(m.language);
+    // Stable order with Python first since it's the default.
+    return ['python', 'javascript'].filter((l) => set.has(l as ProblemLanguage)) as ProblemLanguage[];
+  }, [allModules]);
+
+  // Filter the visible curriculum down to the picked language. If the
+  // picker's language has no modules yet, fall back to whatever IS
+  // available so the dashboard never renders empty after a fresh seed.
+  const effectiveLanguage: ProblemLanguage =
+    availableLanguages.includes(language) || availableLanguages.length === 0
+      ? language
+      : availableLanguages[0];
+  const modules = useMemo(
+    () => allModules.filter((m) => m.language === effectiveLanguage),
+    [allModules, effectiveLanguage],
+  );
 
   const displayName = user ? getDisplayName(user.email) : '';
   const totals = modules.reduce(
@@ -89,10 +112,14 @@ export function Dashboard() {
   const resume = useMemo(() => findResumeTarget(modules, isAdmin), [modules, isAdmin]);
 
   // Mobile-only selection. Defaults to resume target's module, else the
-  // first unlocked module, else M0. Updated when modules first load.
+  // first unlocked module, else M0. Resets to the language's default
+  // when the user toggles languages so we don't keep a stale id that
+  // belongs to the other curriculum.
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  const selectionStillValid = modules.some((m) => m.id === selectedModuleId);
   useEffect(() => {
-    if (selectedModuleId !== null || modules.length === 0) return;
+    if (modules.length === 0) return;
+    if (selectionStillValid) return;
     const resumeOrderIndex =
       resume?.kind === 'lesson' ? resume.moduleOrderIndex : resume?.moduleOrderIndex;
     const defaultId =
@@ -100,16 +127,23 @@ export function Dashboard() {
       modules.find((m) => isAdmin || m.isUnlocked)?.id ??
       modules[0].id;
     setSelectedModuleId(defaultId);
-  }, [modules, resume, isAdmin, selectedModuleId]);
+  }, [modules, resume, isAdmin, selectionStillValid]);
   const selectedModule = modules.find((m) => m.id === selectedModuleId) ?? null;
 
   const content = (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold">Welcome back, {displayName}</h1>
-        <p className="text-sm text-muted-foreground">
-          {totals.completed} of {totals.total} problems solved.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Welcome back, {displayName}</h1>
+          <p className="text-sm text-muted-foreground">
+            {totals.completed} of {totals.total} problems solved.
+          </p>
+        </div>
+        <LanguagePicker
+          value={effectiveLanguage}
+          onChange={setLanguage}
+          available={availableLanguages}
+        />
       </header>
 
       {isLoading ? (
@@ -141,6 +175,15 @@ export function Dashboard() {
       {/* Mobile (< md): top bar + narrow module strip + selected module detail */}
       <div className="flex h-full flex-col bg-slate-50 md:hidden">
         <MobileHeader />
+        {availableLanguages.length > 1 && (
+          <div className="flex justify-center border-b bg-white px-3 py-2">
+            <LanguagePicker
+              value={effectiveLanguage}
+              onChange={setLanguage}
+              available={availableLanguages}
+            />
+          </div>
+        )}
         {isLoading ? (
           <p className="p-4 text-sm text-muted-foreground">Loading…</p>
         ) : (
@@ -176,8 +219,8 @@ function ResumeCard({ resume }: { resume: ResumeTarget }) {
     resume.kind === 'lesson' ? `${resume.moduleTitle} — Lesson` : resume.problemTitle;
   const subtitle =
     resume.kind === 'lesson'
-      ? `Start with the M${resume.moduleOrderIndex} reading`
-      : `M${resume.moduleOrderIndex}.${resume.problemOrderIndex} · ${resume.moduleTitle}`;
+      ? `Start with the M${displayOrderIndex(resume.moduleOrderIndex)} reading`
+      : `M${displayOrderIndex(resume.moduleOrderIndex)}.${resume.problemOrderIndex} · ${resume.moduleTitle}`;
 
   return (
     <Link
@@ -256,7 +299,7 @@ function ModuleCard({
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base">
-            M{mod.orderIndex} · {mod.title}
+            M{displayOrderIndex(mod.orderIndex)} · {mod.title}
           </CardTitle>
           <StatusIcon
             className={cn(

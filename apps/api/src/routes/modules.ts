@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { Lesson, ModuleWithProgress, SectionType } from '@learncode/types';
+import { asLanguage } from '../lib/testRunner.js';
 
 export async function moduleRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -37,15 +38,18 @@ export async function moduleRoutes(fastify: FastifyInstance) {
         },
       });
 
-      let prevModuleComplete = true;
+      // Per-language unlock chain — each language is its own M0->M11
+      // curriculum, so Python's M11 doesn't gate JavaScript's M0.
+      const prevByLanguage = new Map<string, boolean>();
       const enriched: ModuleWithProgress[] = modules.map((mod) => {
+        const language = asLanguage(mod.language);
         const totalCount = mod.problems.length;
         const completedCount = mod.problems.filter((p) => p.progress[0]?.passed).length;
         const allPassed = totalCount > 0 && completedCount === totalCount;
         const lessonRead = !!mod.lesson?.progress[0]?.readAt;
-        // Wave 2 will populate problems for modules M2, M3, M4, M9, M11.
-        // Until then they are transparent to the unlock chain: they neither
-        // block forward progress nor reset it.
+        // Empty modules (lesson + 0 problems and not foundational) are
+        // transparent to the unlock chain: they neither block forward
+        // progress nor reset it.
         const isEmptyPlaceholder = !mod.isFoundational && totalCount === 0;
 
         const isComplete = mod.isFoundational
@@ -54,11 +58,13 @@ export async function moduleRoutes(fastify: FastifyInstance) {
             ? false
             : allPassed;
 
-        const isUnlocked = isAdmin || mod.isFoundational || prevModuleComplete;
+        const prevComplete = prevByLanguage.get(language) ?? true;
+        const isUnlocked = isAdmin || mod.isFoundational || prevComplete;
 
         const result: ModuleWithProgress = {
           id: mod.id,
           orderIndex: mod.orderIndex,
+          language,
           title: mod.title,
           description: mod.description,
           estimatedMinutes: mod.estimatedMinutes,
@@ -86,7 +92,7 @@ export async function moduleRoutes(fastify: FastifyInstance) {
         };
 
         if (!isEmptyPlaceholder) {
-          prevModuleComplete = isComplete;
+          prevByLanguage.set(language, isComplete);
         }
         return result;
       });
