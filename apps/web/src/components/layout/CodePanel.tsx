@@ -166,7 +166,10 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
         <Panel defaultSize={65} minSize={30}>
           <CodeEditor value={code} onChange={setCode} />
         </Panel>
-        <PanelResizeHandle className="h-1 bg-border hover:bg-primary/30" />
+        <PanelResizeHandle className="group relative flex h-3 items-center justify-center bg-border hover:bg-primary/30 md:h-1">
+          {/* Drag indicator — only visible on mobile where the handle is thick. */}
+          <span className="h-0.5 w-8 rounded-full bg-slate-400 md:hidden" />
+        </PanelResizeHandle>
         <Panel defaultSize={35} minSize={15}>
           <div ref={resultsRef} className="h-full">
             <Terminal

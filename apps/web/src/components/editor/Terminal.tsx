@@ -24,7 +24,7 @@ export function Terminal({ output, error, testResults, isRunning }: TerminalProp
         )}
       </div>
 
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 overflow-auto overscroll-contain p-3">
         {!hasContent && !isRunning && (
           <p className="italic text-slate-500">
             Click <strong className="font-semibold text-slate-400">Run</strong> to test your code, or{' '}

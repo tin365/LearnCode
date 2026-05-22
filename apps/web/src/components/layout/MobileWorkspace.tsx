@@ -20,7 +20,9 @@ export function MobileWorkspace({ problemId, moduleId }: MobileWorkspaceProps) {
   return (
     // 100dvh (dynamic viewport height) instead of 100vh so the layout
     // shrinks when the mobile keyboard opens, keeping the toolbar in view.
-    <div className="flex h-[100dvh] flex-col bg-slate-50">
+    // overflow-hidden prevents the whole document from scrolling — each
+    // inner panel handles its own scrolling.
+    <div className="flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-slate-50">
       <MobileHeader />
       {stage === 'reading' ? (
         <ReadingStage
@@ -72,7 +74,9 @@ function ReadingStage({
         <Panel defaultSize={70} minSize={30}>
           <LearningPanel problemId={problemId} moduleId={moduleId} />
         </Panel>
-        <PanelResizeHandle className="h-1 bg-border hover:bg-primary/30" />
+        <PanelResizeHandle className="flex h-3 items-center justify-center bg-border hover:bg-primary/30">
+          <span className="h-0.5 w-8 rounded-full bg-slate-400" />
+        </PanelResizeHandle>
         <Panel defaultSize={30} minSize={15}>
           <Terminal
             output={displayOutput}
