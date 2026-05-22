@@ -1,10 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Play, Send } from 'lucide-react';
+import { Loader2, Play, Send, Square } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { RunResult } from '@learncode/types';
 import { api } from '@/lib/api';
-import { runPythonCode } from '@/lib/pyodide';
+import { ExecutionStoppedError, runPythonCode, terminateWorker } from '@/lib/pyodide';
 import { useProblemStore } from '@/store/problemStore';
 import { useExecutionStore } from '@/store/executionStore';
 import { CodeEditor } from '@/components/editor/CodeEditor';
@@ -90,12 +90,25 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
         setStatusMessage('Run finished');
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Run failed';
-      setOutput(message);
-      setStatusMessage(message);
+      if (err instanceof ExecutionStoppedError) {
+        setOutput('⏹ Stopped');
+        setStatusMessage('Stopped');
+      } else {
+        const message = err instanceof Error ? err.message : 'Run failed';
+        setOutput(message);
+        setStatusMessage(message);
+      }
     } finally {
       setRunning(false);
     }
+  }
+
+  function handleStop() {
+    terminateWorker();
+    // Next call to runPythonCode will spin up a fresh worker — set the
+    // ready flag back to false so the status message reflects the
+    // cold-start cost.
+    setPyodideReady(false);
   }
 
   async function handleSubmit() {
@@ -122,19 +135,26 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
         {leftAction}
-        <button
-          onClick={handleRun}
-          disabled={isBusy}
-          title="Run your code in the terminal — no scoring"
-          className="flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
-        >
-          {running && !isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
+        {running && !isSubmitting ? (
+          <button
+            onClick={handleStop}
+            title="Stop the running code (kills the Pyodide worker)"
+            className="flex items-center gap-2 rounded-md bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
+          >
+            <Square className="h-4 w-4 fill-current" />
+            Stop
+          </button>
+        ) : (
+          <button
+            onClick={handleRun}
+            disabled={isBusy}
+            title="Run your code in the terminal — no scoring"
+            className="flex items-center gap-2 rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 disabled:opacity-50"
+          >
             <Play className="h-4 w-4" />
-          )}
-          Run
-        </button>
+            Run
+          </button>
+        )}
         <button
           onClick={handleSubmit}
           disabled={isBusy}

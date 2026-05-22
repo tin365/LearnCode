@@ -8,6 +8,16 @@ export interface TestCasePayload {
 
 let worker: Worker | null = null;
 let nextRequestId = 0;
+// Track in-flight requests so terminateWorker() can reject them all
+// cleanly instead of leaving callers' Promises pending forever.
+const pendingRejects = new Map<number, (err: Error) => void>();
+
+export class ExecutionStoppedError extends Error {
+  constructor() {
+    super('Execution stopped');
+    this.name = 'ExecutionStoppedError';
+  }
+}
 
 function getWorker(): Worker {
   if (!worker) {
@@ -16,6 +26,22 @@ function getWorker(): Worker {
     });
   }
   return worker;
+}
+
+// Kill the worker mid-run. Used to escape infinite loops in user code:
+// Web Workers expose no cooperative cancellation, so the only way out
+// is to terminate and let the next call spin up a fresh worker.
+//
+// Pyodide cold-start takes ~3s on first use after termination — that's
+// the cost of the rescue, and it's still much better than waiting for
+// a runaway loop to never finish.
+export function terminateWorker(): void {
+  if (!worker) return;
+  worker.terminate();
+  worker = null;
+  const err = new ExecutionStoppedError();
+  for (const reject of pendingRejects.values()) reject(err);
+  pendingRejects.clear();
 }
 
 // Shared request/response over the singleton Pyodide worker. Each call
@@ -29,19 +55,24 @@ function sendWorkerRequest<T>(
     const w = getWorker();
     const requestId = ++nextRequestId;
 
-    const onMessage = (event: MessageEvent) => {
-      if (event.data?.requestId !== requestId) return;
+    const cleanup = () => {
       w.removeEventListener('message', onMessage);
       w.removeEventListener('error', onError);
+      pendingRejects.delete(requestId);
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.requestId !== requestId) return;
+      cleanup();
       resolve(parse(event.data));
     };
 
     const onError = (err: ErrorEvent) => {
-      w.removeEventListener('message', onMessage);
-      w.removeEventListener('error', onError);
+      cleanup();
       reject(err);
     };
 
+    pendingRejects.set(requestId, reject);
     w.addEventListener('message', onMessage);
     w.addEventListener('error', onError);
     w.postMessage({ requestId, ...payload });
