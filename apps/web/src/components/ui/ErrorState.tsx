@@ -64,7 +64,7 @@ export function ErrorState({
   }
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center bg-slate-50 p-6 text-center">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 text-center">
       {inner}
     </div>
   );

@@ -34,7 +34,7 @@ export function Sidebar() {
   const email = user?.email ?? '';
 
   return (
-    <aside className="flex h-full flex-col border-r bg-slate-50">
+    <aside className="flex h-full flex-col border-r bg-slate-50 dark:bg-slate-950">
       <div className="border-b p-4">
         <Link to="/dashboard" className="flex items-center gap-2">
           <img
@@ -73,7 +73,7 @@ export function Sidebar() {
       <div className="space-y-2 border-t p-3">
         <Link
           to="/settings"
-          className="block rounded-md border px-3 py-1.5 text-center text-sm text-slate-700 hover:bg-slate-50"
+          className="block rounded-md border px-3 py-1.5 text-center text-sm text-slate-700 hover:bg-slate-50 dark:bg-slate-950"
         >
           Settings
         </Link>

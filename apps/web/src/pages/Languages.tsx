@@ -57,7 +57,7 @@ export function Languages() {
   }, [modules]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <MobileHeader />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 md:py-12">
         <Link
@@ -84,7 +84,7 @@ export function Languages() {
         ) : isLoading ? (
           <p className="mt-8 text-sm text-muted-foreground">Loading…</p>
         ) : (
-          <ul className="mt-8 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+          <ul className="mt-8 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white dark:bg-slate-900">
             {LANGUAGES.map((lang) => {
               const s = stats.get(lang.id);
               const seeded = s !== undefined && s.moduleCount > 0;
@@ -140,7 +140,7 @@ export function Languages() {
                   {seeded ? (
                     <Link
                       to={`/learn/${lang.id}`}
-                      className="block transition-colors hover:bg-slate-50"
+                      className="block transition-colors hover:bg-slate-50 dark:bg-slate-950"
                     >
                       {inner}
                     </Link>

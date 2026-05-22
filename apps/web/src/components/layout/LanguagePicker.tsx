@@ -23,7 +23,7 @@ export function LanguagePicker({ value, onChange, available }: LanguagePickerPro
     <div
       role="tablist"
       aria-label="Curriculum language"
-      className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 shadow-sm"
+      className="inline-flex rounded-md border border-slate-200 bg-white dark:bg-slate-900 p-0.5 shadow-sm"
     >
       {available.map((lang) => {
         const active = lang === value;

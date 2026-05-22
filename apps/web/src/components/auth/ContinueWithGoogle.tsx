@@ -4,7 +4,7 @@ export function ContinueWithGoogle() {
   return (
     <a
       href={`${API_URL}/auth/google`}
-      className="flex w-full items-center justify-center gap-3 rounded-md border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+      className="flex w-full items-center justify-center gap-3 rounded-md border border-slate-300 bg-white dark:bg-slate-900 px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 dark:bg-slate-950"
     >
       <GoogleMark className="h-4 w-4" />
       Continue with Google

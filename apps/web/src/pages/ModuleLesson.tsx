@@ -50,7 +50,7 @@ export function ModuleLesson() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <MobileHeader />
         <ErrorState
           title="Couldn't load this lesson"
@@ -64,7 +64,7 @@ export function ModuleLesson() {
 
   if (!lesson) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 p-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 dark:bg-slate-950 p-6 text-center">
         <BookOpen className="h-10 w-10 text-slate-300" />
         <p className="text-sm font-medium text-slate-700">No lesson for this module</p>
         <Link
@@ -129,9 +129,9 @@ export function ModuleLesson() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <MobileHeader />
-      <header className="sticky top-0 z-10 hidden border-b bg-white md:block">
+      <header className="sticky top-0 z-10 hidden border-b bg-white dark:bg-slate-900 md:block">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3 md:px-6 md:py-4">
           <button
             type="button"
@@ -181,7 +181,7 @@ export function ModuleLesson() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 rounded-lg border bg-white p-6 md:flex-row md:items-center md:justify-between">
+        <div className="mt-12 flex flex-col gap-4 rounded-lg border bg-white dark:bg-slate-900 p-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="font-semibold text-slate-900">
               {continueTarget.kind === 'dashboard'
@@ -212,7 +212,7 @@ export function ModuleLesson() {
 
 function ReadingViewSkeleton() {
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="mx-auto max-w-4xl animate-pulse space-y-6 p-10">
         <div className="h-10 w-2/3 rounded bg-slate-100" />
         <div className="h-4 w-1/4 rounded bg-slate-100" />

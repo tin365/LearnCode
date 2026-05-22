@@ -6,7 +6,7 @@ export function VisibleTestCases({ testCases }: VisibleTestCasesProps) {
   if (!testCases.length) return null;
 
   return (
-    <section className="rounded-md border border-slate-200 bg-slate-50 p-4">
+    <section className="rounded-md border border-slate-200 bg-slate-50 dark:bg-slate-950 p-4">
       <h3 className="mb-3 text-sm font-semibold text-slate-700">Sample Test Cases</h3>
       <div className="space-y-2 font-mono text-xs">
         {testCases.map((tc, i) => (

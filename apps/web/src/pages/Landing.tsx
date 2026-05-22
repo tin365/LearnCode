@@ -31,7 +31,7 @@ function StreakBanner({ stats }: { stats: UserStats }) {
     // First-time or lapsed. Show an inviting "start your streak" card
     // rather than a sad zero — keeps the page from feeling punishing.
     return (
-      <section className="mt-10 rounded-lg border border-slate-200 bg-white p-5">
+      <section className="mt-10 rounded-lg border border-slate-200 bg-white dark:bg-slate-900 p-5">
         <div className="flex items-center gap-3">
           <Flame className="h-6 w-6 shrink-0 text-slate-300" />
           <div>
@@ -86,7 +86,7 @@ function Stat({
   return (
     <div
       className={cn(
-        'rounded-lg border bg-white p-4',
+        'rounded-lg border bg-white dark:bg-slate-900 p-4',
         emphasis ? 'border-orange-200 bg-orange-50/40' : 'border-slate-200',
       )}
     >
@@ -151,7 +151,7 @@ export function Landing() {
 
   if (isError) {
     return (
-      <div className="flex min-h-screen flex-col bg-slate-50">
+      <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
         <MobileHeader />
         <ErrorState
           message={error instanceof Error ? error.message : null}
@@ -163,7 +163,7 @@ export function Landing() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <MobileHeader />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 md:py-16">
         {/* Hero */}
@@ -193,7 +193,7 @@ export function Landing() {
             <Link
               to="/languages"
               className={cn(
-                'inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100',
+                'inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100',
                 !continueTarget && 'bg-blue-600 text-white hover:bg-blue-700',
               )}
             >
@@ -223,7 +223,7 @@ export function Landing() {
                   key={lang.id}
                   to={seeded ? `/learn/${lang.id}` : '/languages'}
                   className={cn(
-                    'group rounded-lg border bg-white p-4 transition-shadow',
+                    'group rounded-lg border bg-white dark:bg-slate-900 p-4 transition-shadow',
                     seeded ? 'border-slate-200 hover:shadow-md' : 'border-dashed border-slate-200 opacity-60',
                   )}
                 >

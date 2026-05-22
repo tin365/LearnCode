@@ -7,6 +7,7 @@ import type { AuthResponse, UserProfile } from '@learncode/types';
 import { passwordChangeSchema } from '@learncode/validators';
 import { api } from '@/lib/api';
 import { MobileHeader } from '@/components/layout/MobileHeader';
+import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,7 @@ export function Settings() {
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <MobileHeader />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-8 md:py-12">
         <Link
@@ -46,6 +47,7 @@ export function Settings() {
         ) : (
           <div className="mt-8 space-y-6">
             <AccountSection profile={profile} />
+            <AppearanceSection />
             <ConnectedProvidersSection profile={profile} />
             {profile.hasPassword && (
               <ChangePasswordSection
@@ -99,6 +101,20 @@ function AccountSection({ profile }: { profile: UserProfile }) {
             </span>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AppearanceSection() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Appearance</CardTitle>
+      </CardHeader>
+      <CardContent className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-slate-700 dark:text-slate-300">Theme</span>
+        <ThemeToggle />
       </CardContent>
     </Card>
   );

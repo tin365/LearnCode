@@ -50,7 +50,7 @@ export function OAuthComplete() {
   }, [navigate, setSession]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
       <p className="text-sm text-slate-500">Signing you in…</p>
     </div>
   );

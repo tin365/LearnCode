@@ -41,7 +41,7 @@ export function HintBox({ problemId, hints, hintsUsed }: HintBoxProps) {
       </div>
 
       {revealedHints.map((h, i) => (
-        <div key={h.id} className="mb-2 rounded border border-amber-100 bg-white p-3 text-sm">
+        <div key={h.id} className="mb-2 rounded border border-amber-100 bg-white dark:bg-slate-900 p-3 text-sm">
           <div className="mb-1 text-xs font-medium text-amber-700">Hint {i + 1}</div>
           <p className="text-slate-700">{h.content}</p>
         </div>
@@ -57,7 +57,7 @@ export function HintBox({ problemId, hints, hintsUsed }: HintBoxProps) {
       )}
 
       {confirming && (
-        <div className="mt-1 rounded border border-amber-300 bg-white p-3">
+        <div className="mt-1 rounded border border-amber-300 bg-white dark:bg-slate-900 p-3">
           <p className="mb-3 text-sm text-slate-700">
             Using this hint will deduct <strong>10 points</strong> from your score. Continue?
           </p>

@@ -203,15 +203,15 @@ export function LanguageView() {
           </Panel>
           <PanelResizeHandle className="w-1 bg-border hover:bg-primary/30" />
           <Panel defaultSize={82} minSize={50}>
-            <main className="h-full overflow-auto bg-slate-50 p-6">{content}</main>
+            <main className="h-full overflow-auto bg-slate-50 dark:bg-slate-950 p-6">{content}</main>
           </Panel>
         </PanelGroup>
       </div>
 
       {/* Mobile (< md): top bar + narrow module strip + selected module detail */}
-      <div className="flex h-full flex-col bg-slate-50 md:hidden">
+      <div className="flex h-full flex-col bg-slate-50 dark:bg-slate-950 md:hidden">
         <MobileHeader />
-        <div className="flex items-center justify-between border-b bg-white px-3 py-2">
+        <div className="flex items-center justify-between border-b bg-white dark:bg-slate-900 px-3 py-2">
           <Link
             to="/languages"
             className="inline-flex items-center gap-1 text-xs font-medium text-slate-500"

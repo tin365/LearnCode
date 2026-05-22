@@ -56,7 +56,7 @@ export function MobileModuleDetail({ module: mod, isAdmin }: MobileModuleDetailP
       )}
 
       {locked && (
-        <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+        <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 dark:bg-slate-950 p-3 text-sm text-slate-600">
           <Lock className="h-4 w-4 shrink-0" />
           <span>Complete the previous module to unlock.</span>
         </div>
@@ -92,7 +92,7 @@ export function MobileModuleDetail({ module: mod, isAdmin }: MobileModuleDetailP
                   <li key={p.id}>
                     <Link
                       to={`/workspace/${p.id}`}
-                      className="flex items-center justify-between rounded-md border border-slate-200 bg-white p-3 hover:bg-slate-50"
+                      className="flex items-center justify-between rounded-md border border-slate-200 bg-white dark:bg-slate-900 p-3 hover:bg-slate-50 dark:bg-slate-950"
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         {passed ? (

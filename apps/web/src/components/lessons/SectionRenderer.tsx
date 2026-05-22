@@ -32,7 +32,7 @@ const SECTION_META: Record<SectionType, SectionMeta> = {
 const TONE_CONTAINER: Record<Tone, string> = {
   amber: 'border-amber-200 bg-amber-50',
   blue: 'border-blue-200 bg-blue-50',
-  slate: 'border-slate-200 bg-slate-50',
+  slate: 'border-slate-200 bg-slate-50 dark:bg-slate-950',
   emerald: 'border-emerald-200 bg-emerald-50',
   purple: 'border-purple-200 bg-purple-50',
   red: 'border-red-200 bg-red-50',
@@ -82,7 +82,7 @@ export function SectionRenderer({ section }: SectionRendererProps) {
         <pre
           className={
             isSyntax
-              ? 'mt-3 overflow-x-auto rounded-md border bg-white p-3 font-mono text-sm leading-relaxed'
+              ? 'mt-3 overflow-x-auto rounded-md border bg-white dark:bg-slate-900 p-3 font-mono text-sm leading-relaxed'
               : 'mt-3 overflow-x-auto rounded-md bg-slate-900 p-3 font-mono text-sm leading-relaxed text-slate-100'
           }
         >

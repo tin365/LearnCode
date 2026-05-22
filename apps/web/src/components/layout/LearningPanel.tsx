@@ -42,7 +42,7 @@ export function LearningPanel({ problemId, moduleId }: LearningPanelProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex border-b bg-white px-2">
+      <div className="flex border-b bg-white dark:bg-slate-900 px-2">
         <TabButton
           active={tab === 'learn'}
           onClick={() => setTab('learn')}

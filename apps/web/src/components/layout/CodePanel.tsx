@@ -300,7 +300,7 @@ interface StdinPanelProps {
 
 function StdinPanel({ open, onToggle, value, onChange, lineCount }: StdinPanelProps) {
   return (
-    <div className="shrink-0 border-y bg-slate-50">
+    <div className="shrink-0 border-y bg-slate-50 dark:bg-slate-950">
       <button
         type="button"
         onClick={onToggle}
@@ -326,7 +326,7 @@ function StdinPanel({ open, onToggle, value, onChange, lineCount }: StdinPanelPr
           onChange={(e) => onChange(e.target.value)}
           placeholder={'Alice\n30\nyes'}
           spellCheck={false}
-          className="block w-full resize-y border-t bg-white px-3 py-2 font-mono text-[13px] leading-relaxed text-slate-900 outline-none focus:bg-blue-50/30 md:text-sm"
+          className="block w-full resize-y border-t bg-white dark:bg-slate-900 px-3 py-2 font-mono text-[13px] leading-relaxed text-slate-900 outline-none focus:bg-blue-50/30 md:text-sm"
           rows={4}
         />
       )}

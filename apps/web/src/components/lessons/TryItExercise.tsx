@@ -42,7 +42,7 @@ export function TryItExercise({ initialCode }: TryItExerciseProps) {
 
   return (
     <div className="space-y-3">
-      <div className="overflow-hidden rounded-md border border-purple-200 bg-white">
+      <div className="overflow-hidden rounded-md border border-purple-200 bg-white dark:bg-slate-900">
         <Editor
           height="160px"
           language="python"
@@ -73,7 +73,7 @@ export function TryItExercise({ initialCode }: TryItExerciseProps) {
         <button
           type="button"
           onClick={handleReset}
-          className="flex items-center gap-2 rounded-md border bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+          className="flex items-center gap-2 rounded-md border bg-white dark:bg-slate-900 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:bg-slate-950"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Reset

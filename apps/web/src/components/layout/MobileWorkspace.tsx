@@ -22,7 +22,7 @@ export function MobileWorkspace({ problemId, moduleId }: MobileWorkspaceProps) {
     // shrinks when the mobile keyboard opens, keeping the toolbar in view.
     // overflow-hidden prevents the whole document from scrolling — each
     // inner panel handles its own scrolling.
-    <div className="flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-slate-50">
+    <div className="flex h-[100dvh] flex-col overflow-hidden overscroll-none bg-slate-50 dark:bg-slate-950">
       <MobileHeader />
       {stage === 'reading' ? (
         <ReadingStage
@@ -55,7 +55,7 @@ function ReadingStage({
 
   return (
     <>
-      <div className="flex shrink-0 items-center justify-between border-b bg-white px-3 py-2">
+      <div className="flex shrink-0 items-center justify-between border-b bg-white dark:bg-slate-900 px-3 py-2">
         <button
           type="button"
           onClick={onReadyToCode}
@@ -107,7 +107,7 @@ function CodingStage({
           <button
             type="button"
             onClick={onBackToQuestions}
-            className="flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-1 rounded-md border border-slate-300 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:bg-slate-950"
             title="Back to problem description"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

@@ -1,6 +1,28 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import { useMediaQuery, MOBILE_QUERY } from '@/hooks/useMediaQuery';
+
+// Watch the <html class="dark"> toggle set by useTheme(). We can't
+// import the React hook here (it's already used at module mount) and
+// we want CodeEditor to react to live changes, so we subscribe to
+// MutationObserver on the html element instead.
+function useIsDark(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    typeof document === 'undefined'
+      ? false
+      : document.documentElement.classList.contains('dark'),
+  );
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const html = document.documentElement;
+    const obs = new MutationObserver(() => {
+      setIsDark(html.classList.contains('dark'));
+    });
+    obs.observe(html, { attributes: true, attributeFilter: ['class'] });
+    return () => obs.disconnect();
+  }, []);
+  return isDark;
+}
 
 interface CodeEditorProps {
   value: string;
@@ -41,6 +63,7 @@ export function CodeEditor({
   // 16px on mobile so iOS Safari doesn't auto-zoom on focus; 14px on
   // desktop to keep the editor compact.
   const isMobile = useMediaQuery(MOBILE_QUERY);
+  const isDark = useIsDark();
 
   // Keep refs to the latest callbacks so the Monaco commands (registered
   // once on mount) always invoke the freshest closures — without this,
@@ -84,7 +107,7 @@ export function CodeEditor({
         // when the user navigates between a Python and a JS problem
         // without unmounting the editor.
         language={language}
-        theme="vs"
+        theme={isDark ? 'vs-dark' : 'vs'}
         value={value}
         onChange={(v) => onChange(v ?? '')}
         onMount={handleEditorDidMount}

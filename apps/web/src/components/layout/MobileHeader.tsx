@@ -41,7 +41,7 @@ export function MobileHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white px-3 py-2 md:hidden">
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white dark:bg-slate-900 px-3 py-2 md:hidden">
       <Link to="/dashboard" className="flex items-center gap-2">
         <img
           src="/learncode-icon.svg"
@@ -84,14 +84,14 @@ export function MobileHeader() {
               onClick={() => setMenuOpen(false)}
               aria-label="Close menu"
             />
-            <div className="absolute right-0 z-20 mt-2 w-56 rounded-md border bg-white shadow-lg">
+            <div className="absolute right-0 z-20 mt-2 w-56 rounded-md border bg-white dark:bg-slate-900 shadow-lg">
               <div className="truncate border-b px-3 py-2 text-xs text-slate-500">
                 {user?.email}
               </div>
               <Link
                 to="/settings"
                 onClick={() => setMenuOpen(false)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:bg-slate-950"
               >
                 <SettingsIcon className="h-4 w-4" />
                 Settings
@@ -99,7 +99,7 @@ export function MobileHeader() {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 border-t px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                className="flex w-full items-center gap-2 border-t px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:bg-slate-950"
               >
                 <LogOut className="h-4 w-4" />
                 Log out

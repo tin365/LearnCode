@@ -17,8 +17,8 @@ export function OAuthError() {
       : "We couldn't complete sign in. Try again, or use email and password instead.");
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md rounded-lg border bg-white p-6 text-center">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
+      <div className="w-full max-w-md rounded-lg border bg-white dark:bg-slate-900 p-6 text-center">
         <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-500" />
         <h1 className="text-lg font-semibold text-slate-900">Sign in didn't complete</h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
