@@ -18,6 +18,18 @@ import { env } from '../config/env.js';
 
 const BCRYPT_COST = 12;
 
+// Pre-computed bcrypt hash used as a placeholder for "user not found"
+// login attempts. We run bcrypt.compare against this when the email
+// doesn't resolve to a user (or the user has no password, i.e. OAuth-
+// only), so the response time matches a real failed-password attempt.
+// Without this, an attacker could enumerate registered emails by
+// timing the 401 — known emails take ~80–150 ms (real bcrypt), unknown
+// emails return in ~5 ms (no bcrypt). See TO_UPGRADE.md P1 #13.
+const DUMMY_BCRYPT_HASH = bcrypt.hashSync(
+  'this-string-is-never-a-real-password',
+  BCRYPT_COST,
+);
+
 function readClientKind(request: FastifyRequest): ClientKind {
   const raw = request.headers['x-client-kind'];
   const value = Array.isArray(raw) ? raw[0] : raw;
@@ -128,14 +140,13 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       const { email, password } = parsed.data;
       const user = await fastify.prisma.user.findUnique({ where: { email } });
-      // Generic error for both "no user" and "OAuth-only user with no password"
-      // to avoid disclosing account existence or auth method.
-      if (!user || !user.passwordHash) {
-        return reply.status(401).send({ error: 'Invalid email or password' });
-      }
-
-      const valid = await bcrypt.compare(password, user.passwordHash);
-      if (!valid) {
+      // Always run bcrypt — even when the user doesn't exist or has no
+      // password (OAuth-only) — so the 401 response timing is identical
+      // across all failure modes. Account enumeration via timing is
+      // closed; generic error string still hides which mode failed.
+      const hashToCheck = user?.passwordHash ?? DUMMY_BCRYPT_HASH;
+      const passwordMatches = await bcrypt.compare(password, hashToCheck);
+      if (!user || !user.passwordHash || !passwordMatches) {
         return reply.status(401).send({ error: 'Invalid email or password' });
       }
 
