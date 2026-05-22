@@ -69,6 +69,73 @@ describe('runTests', () => {
   });
 });
 
+describe('runTests — Java', () => {
+  it('passes a simple Solution.method test', () => {
+    const code = `public class Solution {
+  public static String helloWorld() {
+    return "Hello, World!";
+  }
+}`;
+    const result = runTests(
+      code,
+      [
+        { inputData: 'Solution.helloWorld()', expected: 'Hello, World!', isHidden: false },
+        { inputData: 'Solution.helloWorld().length()', expected: '13', isHidden: true },
+        { inputData: 'Solution.helloWorld().equals("Hello, World!")', expected: 'true', isHidden: true },
+      ],
+      'java',
+    );
+    expect(result.passed).toBe(true);
+  });
+
+  it('reports compilation errors clearly', () => {
+    const code = `public class Solution {
+  public static String broken() {
+    return "missing semicolon"
+  }
+}`;
+    const result = runTests(
+      code,
+      [{ inputData: 'Solution.broken()', expected: 'x', isHidden: false }],
+      'java',
+    );
+    expect(result.passed).toBe(false);
+    expect(result.testResults[0].actual.toLowerCase()).toMatch(/error|';'/);
+  });
+
+  it('reports a runtime exception as the test result', () => {
+    const code = `public class Solution {
+  public static int divide() {
+    return 1 / 0;
+  }
+}`;
+    const result = runTests(
+      code,
+      [{ inputData: 'Solution.divide()', expected: '0', isHidden: false }],
+      'java',
+    );
+    expect(result.passed).toBe(false);
+    expect(result.testResults[0].actual.toLowerCase()).toContain('arithmetic');
+  });
+
+  it('handles parameter passing and numeric returns', () => {
+    const code = `public class Solution {
+  public static int add(int a, int b) {
+    return a + b;
+  }
+}`;
+    const result = runTests(
+      code,
+      [
+        { inputData: 'Solution.add(2, 3)', expected: '5', isHidden: false },
+        { inputData: 'Solution.add(-1, 1)', expected: '0', isHidden: true },
+      ],
+      'java',
+    );
+    expect(result.passed).toBe(true);
+  });
+}, 30_000);
+
 describe('runTests — JavaScript', () => {
   it('passes a simple function-return test', () => {
     const code = `function helloWorld() { return "Hello, World!"; }`;

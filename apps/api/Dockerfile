@@ -8,10 +8,16 @@
 FROM node:22-slim AS base
 ENV PNPM_HOME=/root/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-# python3 is required at runtime: testRunner.ts spawns `python3` per
-# /progress/submit. node:22-slim doesn't ship it.
+# Interpreters/compilers used by testRunner.ts to grade submissions:
+#   python3          — Python problems
+#   default-jdk-headless  — Java problems (javac + java)
+# JavaScript runs via the already-present `node`. Rust support follows
+# in a later phase (adds rustc, which is ~250 MB on its own).
 RUN apt-get update \
- && apt-get install -y --no-install-recommends openssl ca-certificates dumb-init python3 \
+ && apt-get install -y --no-install-recommends \
+      openssl ca-certificates dumb-init \
+      python3 \
+      default-jdk-headless \
  && rm -rf /var/lib/apt/lists/* \
  && corepack enable \
  && corepack prepare pnpm@9.14.2 --activate

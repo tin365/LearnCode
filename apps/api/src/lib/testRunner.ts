@@ -1,4 +1,7 @@
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { TestResult } from '@learncode/types';
 
 export interface TestCaseInput {
@@ -48,6 +51,14 @@ const subprocessSpawnOptions = {
   env: { PATH: process.env.PATH ?? '' },
   // Confine relative file operations to /tmp.
   cwd: '/tmp',
+};
+
+// Compilation (javac, rustc) needs longer than interpreted execution.
+// 20s is generous for tiny educational programs even on Render free tier.
+const compileSpawnOptions = {
+  ...subprocessSpawnOptions,
+  timeout: 20000,
+  maxBuffer: 4 * 1024 * 1024,
 };
 
 // ---------------------------------------------------------------------------
@@ -146,6 +157,76 @@ function runJsCodeOnly(userCode: string): { output: string; error: string | null
 }
 
 // ---------------------------------------------------------------------------
+// Java
+// ---------------------------------------------------------------------------
+// Per the authoring brief, user code is always
+//     public class Solution { public static T method(...) { ... } }
+// and test inputData calls it like Solution.method(args). The harness
+// wraps the call in String.valueOf((Object)(...)) so primitives are
+// boxed and printed identically to Object.toString().
+
+function runJavaSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
+  const dir = mkdtempSync(join(tmpdir(), 'lc-java-'));
+  try {
+    writeFileSync(join(dir, 'Solution.java'), userCode);
+    writeFileSync(
+      join(dir, 'Main.java'),
+      `public class Main {
+  public static void main(String[] args) {
+    try {
+      System.out.print(String.valueOf((Object)(${expression})));
+    } catch (Throwable t) {
+      System.err.print(t.getClass().getSimpleName() + ": " + t.getMessage());
+      System.exit(1);
+    }
+  }
+}
+`,
+    );
+
+    const compile = spawnSync(
+      'javac',
+      ['-d', dir, join(dir, 'Solution.java'), join(dir, 'Main.java')],
+      { ...compileSpawnOptions, cwd: dir },
+    );
+    if (compile.error) return { ok: false, value: '', error: compile.error.message };
+    if (compile.status !== 0) {
+      return { ok: false, value: '', error: (compile.stderr || 'Compilation failed').trim() };
+    }
+
+    const run = spawnSync('java', ['-cp', dir, 'Main'], { ...subprocessSpawnOptions, cwd: dir });
+    if (run.error) return { ok: false, value: '', error: run.error.message };
+    if (run.status !== 0) {
+      return { ok: false, value: '', error: (run.stderr || run.stdout || 'Execution failed').trim() };
+    }
+    return { ok: true, value: run.stdout.trim() };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+function runJavaCodeOnly(userCode: string): { output: string; error: string | null } {
+  // No expression to evaluate — Solution classes don't have main(). Just
+  // compile to give the user a "does your syntax parse" signal; the
+  // Submit path will run the actual tests.
+  const dir = mkdtempSync(join(tmpdir(), 'lc-java-'));
+  try {
+    writeFileSync(join(dir, 'Solution.java'), userCode);
+    const compile = spawnSync(
+      'javac',
+      ['-d', dir, join(dir, 'Solution.java')],
+      { ...compileSpawnOptions, cwd: dir },
+    );
+    if (compile.status !== 0) {
+      return { output: '', error: (compile.stderr || 'Compilation failed').trim() };
+    }
+    return { output: '', error: null };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Dispatcher
 // ---------------------------------------------------------------------------
 
@@ -154,13 +235,10 @@ function runSnippet(language: Language, userCode: string, expression: string) {
     case 'javascript':
       return runJsSnippet(userCode, expression);
     case 'java':
+      return runJavaSnippet(userCode, expression);
     case 'rust':
-      // Stub until phase 2/3 wires the compiled-language runtimes.
-      return {
-        ok: false,
-        value: '',
-        error: `${language} grading not yet implemented`,
-      };
+      // Stub until phase 3 wires the Rust runtime.
+      return { ok: false, value: '', error: 'rust grading not yet implemented' };
     case 'python':
     default:
       return runPythonSnippet(userCode, expression);
@@ -172,11 +250,9 @@ function runCodeOnly(language: Language, userCode: string) {
     case 'javascript':
       return runJsCodeOnly(userCode);
     case 'java':
+      return runJavaCodeOnly(userCode);
     case 'rust':
-      return {
-        output: '',
-        error: `${language} execution not yet implemented`,
-      };
+      return { output: '', error: 'rust execution not yet implemented' };
     case 'python':
     default:
       return runPythonCodeOnly(userCode);
