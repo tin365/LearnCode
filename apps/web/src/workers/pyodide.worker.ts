@@ -1,6 +1,15 @@
 /// <reference lib="webworker" />
 
-importScripts('https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js');
+// Self-hosted Pyodide v0.25.0. Files live in apps/web/public/pyodide/
+// and are served by Cloudflare Pages from the same origin as the app.
+// This eliminates the jsdelivr supply-chain risk that came with
+// importScripts('https://cdn.jsdelivr.net/...') — see TO_UPGRADE.md P0 #4.
+//
+// loadPyodide() needs to know where its companion files (asm.js,
+// asm.wasm, python_stdlib.zip, pyodide-lock.json) live; the indexURL
+// option tells it to look at /pyodide/ instead of the CDN default.
+const PYODIDE_BASE = '/pyodide/';
+importScripts(`${PYODIDE_BASE}pyodide.js`);
 
 interface PyodideInstance {
   runPythonAsync: (code: string) => Promise<unknown>;
@@ -12,8 +21,10 @@ let pyodide: PyodideInstance | null = null;
 async function loadPyodideOnce(): Promise<PyodideInstance> {
   if (!pyodide) {
     pyodide = await (
-      self as unknown as { loadPyodide: () => Promise<PyodideInstance> }
-    ).loadPyodide();
+      self as unknown as {
+        loadPyodide: (opts: { indexURL: string }) => Promise<PyodideInstance>;
+      }
+    ).loadPyodide({ indexURL: PYODIDE_BASE });
   }
   return pyodide;
 }

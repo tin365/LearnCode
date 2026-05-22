@@ -1,0 +1,8 @@
+# Cloudflare Pages headers. Patterns and values per
+# https://developers.cloudflare.com/pages/configuration/headers/.
+
+# Pyodide runtime files are version-pinned in the path (we don't change
+# them until we upgrade Pyodide), so cache them aggressively. ~13 MB
+# total; without this they'd re-download on every page load.
+/pyodide/*
+  Cache-Control: public, max-age=31536000, immutable
