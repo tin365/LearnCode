@@ -1,0 +1,55 @@
+name: Keep Render Warm
+
+# Render's free-tier API container sleeps after ~15 minutes of
+# inactivity, then takes 30-60s to wake on the next request — long
+# enough that a first-time visitor thinks the site is broken and
+# leaves. This workflow pings /health every 14 minutes so the
+# container never sleeps in the first place.
+#
+# Cost: roughly 24 GitHub Actions minutes per month (well inside the
+# 2000-minute free tier). The cron uses GitHub's scheduler, not our
+# own infrastructure.
+
+on:
+  schedule:
+    # Every 14 minutes. The 15-minute sleep window means we need to
+    # hit at least once per 15-minute period; 14 gives a safety margin.
+    - cron: '*/14 * * * *'
+  workflow_dispatch: {}
+
+# Only one ping at a time. If GitHub is slow and a previous ping is
+# still running when the next is due, skip it instead of stacking.
+concurrency:
+  group: keep-warm
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping API health endpoint
+        run: |
+          set -uo pipefail
+          URL="https://api.learncode.study/health"
+          echo "GET $URL"
+          # -m 90: allow up to 90s in case Render is cold-starting.
+          # -w: print HTTP code and total time after the body.
+          HTTP=$(curl -sSL -o /tmp/body -w "%{http_code} %{time_total}s" -m 90 "$URL")
+          STATUS=$?
+          echo "HTTP $HTTP"
+          echo "--- body ---"
+          cat /tmp/body || true
+          echo
+          echo "--- end body ---"
+          # curl exit codes:
+          #   0  = request completed (any HTTP status, including 5xx)
+          #   28 = timeout (request never finished)
+          # We fail the job if curl itself couldn't get a response —
+          # network, DNS, or stuck request. We do NOT fail on 5xx
+          # because that means Render is up but the app is unhealthy,
+          # which Sentry will surface separately.
+          if [ "$STATUS" -ne 0 ]; then
+            echo "::error::curl failed with exit code $STATUS"
+            exit 1
+          fi
