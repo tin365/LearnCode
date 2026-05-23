@@ -27,6 +27,16 @@ export async function buildServer() {
     // a UUID. Lets traces span the load balancer + app process.
     requestIdHeader: 'x-request-id',
     genReqId: () => randomUUID(),
+    // We sit behind Cloudflare -> Render's load balancer, so the direct
+    // socket peer is always the Render LB. Without trustProxy, request.ip
+    // returns the LB's IP for every request, which collapses @fastify/
+    // rate-limit's per-IP buckets into a single global one — one greedy
+    // user would lock out everyone else. Trusting X-Forwarded-For makes
+    // request.ip return the real client IP. The residual risk is that
+    // anyone who finds the direct Render origin URL could spoof the
+    // header; mitigated by Render's own DDoS protection and by Render's
+    // *.onrender.com hostname being undocumented externally.
+    trustProxy: true,
   });
 
   await fastify.register(helmet, {
