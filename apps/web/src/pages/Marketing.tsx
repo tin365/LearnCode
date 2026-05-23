@@ -63,7 +63,7 @@ const COMING_NEXT = [
   {
     id: 'physics',
     label: 'Physics for Programmers',
-    blurb: 'Mechanics, waves, and the math models that power game engines.',
+    blurb: 'Motion, gravity, and collisions — the physics behind games and simulations.',
     icon: <Atom className="h-5 w-5" />,
   },
 ];
