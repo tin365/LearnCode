@@ -1,0 +1,75 @@
+name: Daily DB Backup
+
+# Neon's free tier keeps only 24 hours of point-in-time recovery — not
+# enough to catch a Friday-night mistake we notice Monday morning. This
+# workflow dumps the DB to a compressed artifact every day, retained
+# for 90 days. Restore with:
+#   gunzip -c db-backup-YYYY-MM-DD.sql.gz | psql "$DIRECT_URL"
+#
+# Cost: ~30 GitHub Actions minutes/month, well inside the 2000-minute
+# quota that also covers private repos.
+
+on:
+  schedule:
+    # 03:00 UTC daily — quiet hours for our APAC traffic patterns.
+    - cron: '0 3 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # ubuntu-latest's apt mirror often only carries postgresql-client-14;
+      # Neon runs Postgres 16+ and pg_dump requires major-version parity
+      # with (or newer than) the server. Pull client 16 from PGDG.
+      - name: Install postgresql-client-16
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --silent --show-error --fail \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-16
+          pg_dump --version
+
+      - name: Capture timestamp
+        id: ts
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: pg_dump + gzip
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_DATABASE_URL:-}" ]; then
+            echo "::error::BACKUP_DATABASE_URL secret is not set. Add it under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          # --no-owner / --no-acl: portable across DB users (restore target
+          #   may have different role names).
+          # --clean --if-exists: dump includes DROP statements so the
+          #   restore is idempotent against an existing schema.
+          # Plain SQL (default) is grep-able in an editor without tools.
+          pg_dump \
+            --no-owner --no-acl \
+            --clean --if-exists \
+            "$BACKUP_DATABASE_URL" \
+            | gzip -9 > backup.sql.gz
+          ls -lh backup.sql.gz
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ steps.ts.outputs.date }}
+          path: backup.sql.gz
+          retention-days: 90
+          # File is already gzipped; skip the artifact-store re-zip pass.
+          compression-level: 0
