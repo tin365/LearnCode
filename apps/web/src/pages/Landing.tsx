@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Flame, Trophy } from 'lucide-react';
+import { ArrowRight, Flame, Sparkles, Trophy } from 'lucide-react';
 import type { ModuleWithProgress, ProblemLanguage, UserStats } from '@learncode/types';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -149,6 +149,26 @@ export function Landing() {
     return null;
   }, [byLanguage, lastLanguage]);
 
+  // First-time experience: detect a user who has loaded the dashboard
+  // but never completed anything yet (the funnel-leak Reddit traffic
+  // showed). Give them a single dominant CTA into the first Python
+  // lesson instead of the generic "Browse all languages" hero.
+  const firstPythonModule = useMemo(
+    () =>
+      modules
+        .filter((m) => m.language === 'python')
+        .sort((a, b) => a.orderIndex - b.orderIndex)[0],
+    [modules],
+  );
+  const hasAnyProgress = useMemo(
+    () => modules.some((m) => m.completedCount > 0),
+    [modules],
+  );
+  // Only switch to the new-user hero once /modules has resolved AND
+  // every module is at 0/N. Avoids flashing the wrong hero during load.
+  const showNewUserHero =
+    modules.length > 0 && !hasAnyProgress && !!firstPythonModule;
+
   if (isError) {
     return (
       <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
@@ -166,41 +186,76 @@ export function Landing() {
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <MobileHeader />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 md:py-16">
-        {/* Hero */}
-        <section className="text-center">
-          <img
-            src="/learncode-icon.svg"
-            alt="LearnCode"
-            className="mx-auto mb-4 h-14 w-14 rounded-full"
-          />
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            Welcome back{user ? `, ${displayName(user.email)}` : ''}
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-base text-slate-600 md:text-lg">
-            Learn to code in four languages, one bite-sized problem at a time. Pick a
-            curriculum to dive in, or pick up where you left off.
-          </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            {continueTarget ? (
-              <Link
-                to={`/learn/${continueTarget}`}
-                className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
-              >
-                Continue {LANGUAGES.find((l) => l.id === continueTarget)?.label}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            ) : null}
+        {/* Hero — first-time experience vs returning user. */}
+        {showNewUserHero ? (
+          <section className="text-center">
+            <img
+              src="/learncode-icon.svg"
+              alt="LearnCode"
+              className="mx-auto mb-4 h-14 w-14 rounded-full"
+            />
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+              <Sparkles className="mr-1 inline h-3.5 w-3.5" />
+              Welcome{user ? `, ${displayName(user.email)}` : ''}
+            </p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 md:text-4xl">
+              Let's write your first lines of code.
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-base text-slate-600 dark:text-slate-400 md:text-lg">
+              Start with Python — beginner-friendly and the most-used language
+              in the world. Module 1 takes about five minutes.
+            </p>
             <Link
-              to="/languages"
-              className={cn(
-                'inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100',
-                !continueTarget && 'bg-blue-600 text-white hover:bg-blue-700',
-              )}
+              to={`/module/${firstPythonModule!.id}/lesson`}
+              className="mt-7 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition-shadow hover:bg-blue-700 hover:shadow-blue-500/40"
             >
-              Browse all languages
+              Start your first lesson
+              <ArrowRight className="h-5 w-5" />
             </Link>
-          </div>
-        </section>
+            <p className="mt-4 text-xs text-slate-500">
+              Or{' '}
+              <Link to="/languages" className="font-medium text-slate-700 underline hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100">
+                pick a different language
+              </Link>
+              .
+            </p>
+          </section>
+        ) : (
+          <section className="text-center">
+            <img
+              src="/learncode-icon.svg"
+              alt="LearnCode"
+              className="mx-auto mb-4 h-14 w-14 rounded-full"
+            />
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+              Welcome back{user ? `, ${displayName(user.email)}` : ''}
+            </h1>
+            <p className="mx-auto mt-3 max-w-xl text-base text-slate-600 md:text-lg">
+              Learn to code in four languages, one bite-sized problem at a time. Pick a
+              curriculum to dive in, or pick up where you left off.
+            </p>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              {continueTarget ? (
+                <Link
+                  to={`/learn/${continueTarget}`}
+                  className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                >
+                  Continue {LANGUAGES.find((l) => l.id === continueTarget)?.label}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : null}
+              <Link
+                to="/languages"
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white dark:bg-slate-900 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100',
+                  !continueTarget && 'bg-blue-600 text-white hover:bg-blue-700',
+                )}
+              >
+                Browse all languages
+              </Link>
+            </div>
+          </section>
+        )}
 
         {/* Streak banner — only renders once stats land so we don't flash
             a confusing "0 day streak" during load. */}
