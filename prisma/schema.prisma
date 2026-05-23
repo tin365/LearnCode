@@ -7,7 +7,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // Runtime queries go through Neon's PgBouncer pooler. URL ends in
+  // `-pooler.<region>.aws.neon.tech` with `?pgbouncer=true` appended
+  // so Prisma skips prepared statements (PgBouncer transaction-pool
+  // mode doesn't preserve them across reuses of a backend connection).
+  url       = env("DATABASE_URL")
+  // Migrations need a direct (un-pooled) connection because DDL and
+  // some advisory locks aren't safe through PgBouncer in transaction
+  // mode. Falls back to `url` if DIRECT_URL isn't set, which keeps
+  // local dev working without a separate env var.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {

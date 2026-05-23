@@ -25,6 +25,11 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+    // Optional. When DATABASE_URL points at Neon's PgBouncer pooler
+    // (-pooler hostname + ?pgbouncer=true), set DIRECT_URL to the
+    // direct connection string so `prisma migrate` works. Runtime
+    // queries don't need it.
+    DIRECT_URL: z.string().optional(),
     JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
     COOKIE_SECRET: z.string().min(1, 'COOKIE_SECRET is required'),
     API_PORT: z.coerce.number().int().positive().default(3001),
