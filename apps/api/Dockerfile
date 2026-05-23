@@ -23,7 +23,14 @@ RUN apt-get update \
       rustc \
  && rm -rf /var/lib/apt/lists/* \
  && corepack enable \
- && corepack prepare pnpm@9.14.2 --activate
+ && corepack prepare pnpm@9.14.2 --activate \
+ # Unprivileged user that compiles + runs *user-submitted* code. The
+ # Fastify process itself stays as root so it can setuid() into this
+ # user when spawning the grader subprocess. The grader user has no
+ # shell, no home dir, no sudo, and no group memberships — if a hostile
+ # submission breaks out of the spawnSync, it can't read /root/, the
+ # API source tree, or any env var Render injects into PID 1.
+ && useradd --system --shell /usr/sbin/nologin --no-create-home --uid 10001 grader
 
 # ---- Install workspace deps (cached on lockfile + manifests) ----
 FROM base AS deps

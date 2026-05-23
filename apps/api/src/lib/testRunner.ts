@@ -1,8 +1,37 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chownSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { TestResult } from '@learncode/types';
+
+// Drop privileges before running user-submitted code. The Fastify
+// process runs as root inside the container so it can setuid() into
+// `grader` (UID 10001, defined in the Dockerfile). The grader user
+// has no shell, no home, no group memberships — so even if a hostile
+// submission breaks out of the timeout/heap caps, it cannot read
+// Render's injected env vars, the API source tree, /root, or anything
+// else owned by root.
+//
+// In local dev (tests, `pnpm dev`) the API runs as a regular user
+// who can't setuid. We detect that and skip the drop — the test
+// suite stays runnable without sudo or Docker.
+const GRADER_UID = 10001;
+const GRADER_GID = 10001;
+const canSetuid =
+  typeof process.getuid === 'function' && process.getuid() === 0;
+const dropPrivileges: { uid: number; gid: number } | Record<string, never> =
+  canSetuid ? { uid: GRADER_UID, gid: GRADER_GID } : {};
+
+// mkdtempSync creates a 0o700 dir owned by the calling user (root in
+// prod). After chown'ing to grader, grader can write into it (compile
+// output, temp .class/binary files) while root can still write the
+// source files via the kernel's root-bypasses-permissions rule. Files
+// written by root land at 0o644 (default umask) so grader can read them.
+function makeGraderTempDir(prefix: string): string {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  if (canSetuid) chownSync(dir, GRADER_UID, GRADER_GID);
+  return dir;
+}
 
 export interface TestCaseInput {
   expected: string;
@@ -39,9 +68,8 @@ function formatPythonValue(value: unknown): string {
 }
 
 // Common spawnSync options for every subprocess. Centralising them so
-// the env-stripping and cwd-confinement rules can't drift between call
-// sites. Subprocess attacks via absolute paths aren't prevented by
-// either knob — they need a real sandbox.
+// the env-stripping, cwd-confinement, and privilege-drop rules can't
+// drift between call sites.
 const subprocessSpawnOptions = {
   encoding: 'utf-8' as const,
   timeout: 5000,
@@ -51,6 +79,9 @@ const subprocessSpawnOptions = {
   env: { PATH: process.env.PATH ?? '' },
   // Confine relative file operations to /tmp.
   cwd: '/tmp',
+  // Run as the unprivileged grader user (no-op in local dev — see top
+  // of file).
+  ...dropPrivileges,
 };
 
 // Compilation (javac, rustc) needs longer than interpreted execution.
@@ -170,7 +201,7 @@ function runJsCodeOnly(userCode: string): { output: string; error: string | null
 // boxed and printed identically to Object.toString().
 
 function runJavaSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'lc-java-'));
+  const dir = makeGraderTempDir('lc-java-');
   try {
     writeFileSync(join(dir, 'Solution.java'), userCode);
     writeFileSync(
@@ -215,7 +246,7 @@ function runJavaCodeOnly(userCode: string): { output: string; error: string | nu
   // No expression to evaluate — Solution classes don't have main(). Just
   // compile to give the user a "does your syntax parse" signal; the
   // Submit path will run the actual tests.
-  const dir = mkdtempSync(join(tmpdir(), 'lc-java-'));
+  const dir = makeGraderTempDir('lc-java-');
   try {
     writeFileSync(join(dir, 'Solution.java'), userCode);
     const compile = spawnSync(
@@ -241,7 +272,7 @@ function runJavaCodeOnly(userCode: string): { output: string; error: string | nu
 // matching what `println!("{:?}", value)` produces.
 
 function runRustSnippet(userCode: string, expression: string): { ok: boolean; value: string; error?: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'lc-rust-'));
+  const dir = makeGraderTempDir('lc-rust-');
   try {
     const source = `${userCode}
 
@@ -280,7 +311,7 @@ function runRustCodeOnly(userCode: string): { output: string; error: string | nu
   // Try to compile the user code alone. If they didn't define main(),
   // we wrap in an empty main so rustc has an entry point. This is
   // primarily a "does your code parse" check.
-  const dir = mkdtempSync(join(tmpdir(), 'lc-rust-'));
+  const dir = makeGraderTempDir('lc-rust-');
   try {
     const hasMain = /\bfn\s+main\s*\(/.test(userCode);
     const source = hasMain ? userCode : `${userCode}\n\nfn main() {}\n`;
