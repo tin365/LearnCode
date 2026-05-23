@@ -39,7 +39,10 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
-          pg_dump --version
+          # ubuntu-latest pre-installs postgresql-client-16 and the
+          # /usr/bin/pg_dump wrapper sticks with the older version even
+          # after we install 17. Use the absolute path to bypass it.
+          /usr/lib/postgresql/17/bin/pg_dump --version
 
       - name: Capture timestamp
         id: ts
@@ -59,7 +62,8 @@ jobs:
           # --clean --if-exists: dump includes DROP statements so the
           #   restore is idempotent against an existing schema.
           # Plain SQL (default) is grep-able in an editor without tools.
-          pg_dump \
+          # Absolute path — see version note in the install step.
+          /usr/lib/postgresql/17/bin/pg_dump \
             --no-owner --no-acl \
             --clean --if-exists \
             "$BACKUP_DATABASE_URL" \
