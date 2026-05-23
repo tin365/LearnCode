@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
+  Atom,
+  Calculator,
   Code2,
   GraduationCap,
   Lightbulb,
+  Network,
   Play,
   Sparkles,
   Zap,
@@ -41,6 +44,27 @@ const LANGUAGES = [
     accent: 'bg-red-600',
     modules: 12,
     problems: 60,
+  },
+];
+
+const COMING_NEXT = [
+  {
+    id: 'dsa',
+    label: 'Data Structures & Algorithms',
+    blurb: 'From arrays and hash maps to graphs and dynamic programming.',
+    icon: <Network className="h-5 w-5" />,
+  },
+  {
+    id: 'math',
+    label: 'Math for Programmers',
+    blurb: 'Linear algebra, discrete math, probability — only what you actually use.',
+    icon: <Calculator className="h-5 w-5" />,
+  },
+  {
+    id: 'physics',
+    label: 'Physics for Engineers',
+    blurb: 'Mechanics, waves, and the math models that power game engines.',
+    icon: <Atom className="h-5 w-5" />,
   },
 ];
 
@@ -92,6 +116,7 @@ export function Marketing() {
 
       <main className="flex-1">
         <Hero />
+        <ComingNextSection />
         <LanguagesSection />
         <HowItWorks />
         <FeaturesSection />
@@ -228,6 +253,58 @@ function CodeMockup() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ComingNextSection() {
+  return (
+    <section className="border-b border-slate-200/60 dark:border-slate-800/60">
+      <div className="mx-auto w-full max-w-5xl px-4 py-16 md:py-20">
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+            Roadmap
+          </p>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight md:text-3xl">
+            Three new tracks on the way.
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-slate-600 dark:text-slate-400">
+            More to learn. Same promise — free, hand-written, no setup.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {COMING_NEXT.map((track) => (
+            <div
+              key={track.id}
+              className="rounded-lg border border-dashed border-slate-300 bg-white/50 p-5 dark:border-slate-700 dark:bg-slate-900/40"
+            >
+              <div className="flex items-center justify-between">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  {track.icon}
+                </div>
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                  Soon
+                </span>
+              </div>
+              <h3 className="mt-4 text-base font-semibold">{track.label}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                {track.blurb}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-10 text-center text-sm text-slate-600 dark:text-slate-400">
+          <Link
+            to="/register"
+            className="font-semibold text-blue-600 hover:underline dark:text-blue-400"
+          >
+            Create a free account
+          </Link>{' '}
+          and we'll email you the day each track launches.
+        </p>
+      </div>
+    </section>
   );
 }
 
