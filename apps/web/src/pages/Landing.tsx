@@ -261,10 +261,13 @@ export function Landing() {
             a confusing "0 day streak" during load. */}
         {stats && <StreakBanner stats={stats} />}
 
-        {/* Per-language progress chips */}
+        {/* Per-language progress chips. For brand-new users (no progress
+            anywhere) the chips become discovery cards: dimmed, no
+            empty "0 / 60" counts, no empty progress bar — just the
+            language and its tagline so the eye stays on the main CTA. */}
         <section className="mt-12">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Your progress
+            {showNewUserHero ? 'Explore the languages' : 'Your progress'}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {LANGUAGES.map((lang) => {
@@ -278,24 +281,37 @@ export function Landing() {
                   key={lang.id}
                   to={seeded ? `/learn/${lang.id}` : '/languages'}
                   className={cn(
-                    'group rounded-lg border bg-white dark:bg-slate-900 p-4 transition-shadow',
+                    'group rounded-lg border bg-white dark:bg-slate-900 p-4 transition-all',
                     seeded ? 'border-slate-200 hover:shadow-md' : 'border-dashed border-slate-200 opacity-60',
+                    // New-user mode: dim the whole card so it doesn't
+                    // compete with the hero CTA. Brighten on hover so it
+                    // still feels interactive.
+                    showNewUserHero && seeded && 'opacity-70 hover:opacity-100',
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className={cn('h-2 w-2 rounded-full', lang.accent)} />
-                        <span className="font-semibold text-slate-900">{lang.label}</span>
+                        <span className="font-semibold text-slate-900 dark:text-slate-100">{lang.label}</span>
                       </div>
                       <p className="mt-0.5 text-xs text-slate-500">{lang.tagline}</p>
                     </div>
-                    <span className="text-xs font-medium text-slate-500">
-                      {seeded ? `${completed} / ${total}` : 'Coming soon'}
-                    </span>
+                    {/* Hide the "0 / 60" count for new users — it's all
+                        zeros and reads as a chore. Still show the count
+                        for returning users and "Coming soon" for any
+                        un-seeded language. */}
+                    {!seeded ? (
+                      <span className="text-xs font-medium text-slate-500">Coming soon</span>
+                    ) : !showNewUserHero ? (
+                      <span className="text-xs font-medium text-slate-500">{completed} / {total}</span>
+                    ) : null}
                   </div>
-                  {seeded && (
-                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  {/* Progress bar only when there's actual progress to
+                      show. Hidden for new users (would be empty) and
+                      for un-seeded languages. */}
+                  {seeded && !showNewUserHero && (
+                    <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                       <div
                         className={cn(
                           'h-full transition-all',
