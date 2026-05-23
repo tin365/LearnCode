@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AuthShell } from '@/components/auth/AuthShell';
 import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
 import { ContinueWithFacebook } from '@/components/auth/ContinueWithFacebook';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -39,10 +40,23 @@ export function Register() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Create your account</CardTitle>
+    <AuthShell
+      eyebrow="Free, forever"
+      headline={
+        <>
+          Start free today.
+          <br />
+          Stay free as we grow.
+        </>
+      }
+      subheadline="Create an account in seconds. Get every current and future track at zero cost — and an email the day each new track lands."
+    >
+      <Card className="w-full shadow-xl shadow-blue-500/5">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Create your free account</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            No credit card. No trial timer. Just learning.
+          </p>
         </CardHeader>
         <CardContent>
           <InAppBrowserNotice />
@@ -51,9 +65,9 @@ export function Register() {
             <ContinueWithFacebook />
           </div>
           <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" />
-            or
-            <span className="h-px flex-1 bg-slate-200" />
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+            or sign up with email
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -63,21 +77,28 @@ export function Register() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              <p className="text-xs text-muted-foreground">At least 8 characters</p>
+              <p className="text-xs text-muted-foreground">
+                At least 8 characters with a mix of letter types
+              </p>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full">
-              Register
+              Create my account
             </Button>
+            <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
+              By signing up you agree to our{' '}
+              <Link to="/terms" className="underline hover:text-foreground">Terms</Link>{' '}and{' '}
+              <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
+            </p>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-sm text-muted-foreground">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline">
+            <Link to="/login" className="font-semibold text-primary hover:underline">
               Log in
             </Link>
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }

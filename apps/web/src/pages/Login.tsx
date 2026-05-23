@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AuthShell } from '@/components/auth/AuthShell';
 import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
 import { ContinueWithFacebook } from '@/components/auth/ContinueWithFacebook';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -51,10 +52,13 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Log in to LearnCode</CardTitle>
+    <AuthShell>
+      <Card className="w-full shadow-xl shadow-blue-500/5">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Sign in to pick up where you left off.
+          </p>
         </CardHeader>
         <CardContent>
           <InAppBrowserNotice />
@@ -63,9 +67,9 @@ export function Login() {
             <ContinueWithFacebook />
           </div>
           <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400">
-            <span className="h-px flex-1 bg-slate-200" />
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             or
-            <span className="h-px flex-1 bg-slate-200" />
+            <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -84,20 +88,20 @@ export function Login() {
               </div>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            {notice && <p className="text-sm text-emerald-700">{notice}</p>}
+            {notice && <p className="text-sm text-emerald-700 dark:text-emerald-400">{notice}</p>}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full">
               Log in
             </Button>
           </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            No account?{' '}
-            <Link to="/register" className="text-primary hover:underline">
-              Register
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            New here?{' '}
+            <Link to="/register" className="font-semibold text-primary hover:underline">
+              Create a free account
             </Link>
           </p>
         </CardContent>
       </Card>
-    </div>
+    </AuthShell>
   );
 }
