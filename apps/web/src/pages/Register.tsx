@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthShell, ComingSoonStrip } from '@/components/auth/AuthShell';
 import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
 import { ContinueWithFacebook } from '@/components/auth/ContinueWithFacebook';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -40,20 +40,12 @@ export function Register() {
   }
 
   return (
-    <AuthShell
-      eyebrow="Free, forever"
-      headline={
-        <>
-          Start free today.
-          <br />
-          Stay free as we grow.
-        </>
-      }
-      subheadline="Create an account in seconds. Get every current and future track at zero cost — and an email the day each new track lands."
-    >
-      <Card className="w-full shadow-xl shadow-blue-500/5">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Create your free account</CardTitle>
+    <AuthShell>
+      <Card className="w-full max-w-md shadow-2xl shadow-blue-500/10">
+        <CardHeader className="space-y-1 pb-4">
+          <CardTitle className="text-2xl tracking-tight">
+            Create your free account
+          </CardTitle>
           <p className="text-sm text-muted-foreground">
             No credit card. No trial timer. Just learning.
           </p>
@@ -97,6 +89,8 @@ export function Register() {
               Log in
             </Link>
           </p>
+
+          <ComingSoonStrip />
         </CardContent>
       </Card>
     </AuthShell>

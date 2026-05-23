@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthShell, ComingSoonStrip } from '@/components/auth/AuthShell';
 import { ContinueWithGoogle } from '@/components/auth/ContinueWithGoogle';
 import { ContinueWithFacebook } from '@/components/auth/ContinueWithFacebook';
 import { InAppBrowserNotice } from '@/components/auth/InAppBrowserNotice';
@@ -53,9 +53,9 @@ export function Login() {
 
   return (
     <AuthShell>
-      <Card className="w-full shadow-xl shadow-blue-500/5">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
+      <Card className="w-full max-w-md shadow-2xl shadow-blue-500/10">
+        <CardHeader className="space-y-1 pb-4">
+          <CardTitle className="text-2xl tracking-tight">Welcome back</CardTitle>
           <p className="text-sm text-muted-foreground">
             Sign in to pick up where you left off.
           </p>
@@ -100,6 +100,8 @@ export function Login() {
               Create a free account
             </Link>
           </p>
+
+          <ComingSoonStrip />
         </CardContent>
       </Card>
     </AuthShell>
