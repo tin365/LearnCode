@@ -7,6 +7,7 @@ import { bootstrapSession } from '@/lib/api';
 import { AppShell } from '@/components/layout/AppShell';
 import { Login } from '@/pages/Login';
 import { Register } from '@/pages/Register';
+import { Marketing } from '@/pages/Marketing';
 import { Landing } from '@/pages/Landing';
 import { Languages } from '@/pages/Languages';
 import { LanguageView } from '@/pages/LanguageView';
@@ -28,6 +29,17 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
   if (!hydrated) return null;
   if (accessToken) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
+}
+
+// `/` shows the marketing page to logged-out visitors, but bounces
+// existing users to their personalised dashboard so they don't have
+// to re-read the pitch every time.
+function RootRoute() {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  if (!hydrated) return null;
+  if (accessToken) return <Navigate to="/dashboard" replace />;
+  return <Marketing />;
 }
 
 export default function App() {
@@ -75,8 +87,8 @@ export default function App() {
             <Route path="/workspace/:id" element={<Workspace />} />
             <Route path="/module/:moduleId/lesson" element={<ModuleLesson />} />
           </Route>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<RootRoute />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
