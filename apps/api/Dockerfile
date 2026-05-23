@@ -27,10 +27,13 @@ RUN apt-get update \
  # Unprivileged user that compiles + runs *user-submitted* code. The
  # Fastify process itself stays as root so it can setuid() into this
  # user when spawning the grader subprocess. The grader user has no
- # shell, no home dir, no sudo, and no group memberships — if a hostile
- # submission breaks out of the spawnSync, it can't read /root/, the
- # API source tree, or any env var Render injects into PID 1.
- && useradd --system --shell /usr/sbin/nologin --no-create-home --uid 10001 grader
+ # shell, no home dir, no sudo, and no other group memberships — if a
+ # hostile submission breaks out of the spawnSync, it can't read
+ # /root/, the API source tree, or any env var Render injects into
+ # PID 1. Both UID and GID are pinned to 10001 so testRunner.ts can
+ # rely on a fixed numeric pair.
+ && groupadd --system --gid 10001 grader \
+ && useradd --system --gid 10001 --shell /usr/sbin/nologin --no-create-home --uid 10001 grader
 
 # ---- Install workspace deps (cached on lockfile + manifests) ----
 FROM base AS deps
@@ -58,6 +61,11 @@ FROM base AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app /app
+# Strip group + other perms across the whole app tree so the
+# unprivileged grader user (UID 10001) cannot read API source,
+# node_modules, or prisma schema. Root (Fastify) keeps full access
+# because the kernel bypasses DAC checks for UID 0.
+RUN chmod -R go-rwx /app
 EXPOSE 3001
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["pnpm", "--filter", "@learncode/api", "start"]
