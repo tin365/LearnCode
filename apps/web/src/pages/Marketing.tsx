@@ -62,7 +62,7 @@ const COMING_NEXT = [
   },
   {
     id: 'physics',
-    label: 'Physics for Engineers',
+    label: 'Physics for Programmers',
     blurb: 'Mechanics, waves, and the math models that power game engines.',
     icon: <Atom className="h-5 w-5" />,
   },
