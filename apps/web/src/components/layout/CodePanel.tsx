@@ -1,8 +1,19 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronRight, Keyboard, Loader2, Play, Send, Square } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { RunResult } from '@learncode/types';
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  Keyboard,
+  Loader2,
+  Play,
+  Send,
+  Square,
+} from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { Problem, Progress, RunResult } from '@learncode/types';
 import { api } from '@/lib/api';
 import { ExecutionStoppedError, runPythonCode, terminateWorker } from '@/lib/pyodide';
 import { runJsCode, terminateJsWorker } from '@/lib/jsRuntime';
@@ -182,6 +193,40 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
     ? stdinText.replace(/\n$/, '').split('\n').filter(Boolean).length
     : 0;
 
+  // After a pass, show a "Next problem" CTA so the user keeps moving
+  // forward without bouncing back to the module page. Both queries are
+  // already cached at the page level (Workspace + Sidebar fetch them);
+  // pulling them here is a free cache read.
+  const currentProblem = useProblemStore((s) => s.current);
+  const { data: allProblems = [] } = useQuery({
+    queryKey: ['problems'],
+    queryFn: () => api.get<Problem[]>('/problems'),
+  });
+  const { data: progress = [] } = useQuery({
+    queryKey: ['progress'],
+    queryFn: () => api.get<Progress[]>('/progress'),
+  });
+  const nextProblemId = useMemo(() => {
+    if (!currentProblem) return null;
+    const inModule = allProblems
+      .filter((p) => p.moduleId === currentProblem.moduleId)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+    const passedIds = new Set(
+      progress.filter((p) => p.passed).map((p) => p.problemId),
+    );
+    // Prefer the next unsolved problem (keeps forward momentum); fall
+    // back to the next sequential problem if everything ahead is
+    // already solved.
+    const nextUnsolved = inModule.find(
+      (p) => p.orderIndex > currentProblem.orderIndex && !passedIds.has(p.id),
+    );
+    if (nextUnsolved) return nextUnsolved.id;
+    const anyNext = inModule.find(
+      (p) => p.orderIndex > currentProblem.orderIndex,
+    );
+    return anyNext?.id ?? null;
+  }, [allProblems, progress, currentProblem]);
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
@@ -247,6 +292,26 @@ export function CodePanel({ problemId, leftAction }: CodePanelProps) {
           {statusMessage ?? 'Ready'}
         </span>
       </div>
+
+      {/* Success banner after a pass — keeps the user in the
+          learning loop instead of forcing them back to the module page. */}
+      {lastResult?.passed && nextProblemId && (
+        <div className="shrink-0 border-b border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-900 dark:text-emerald-100">
+              <CheckCircle2 className="h-4 w-4" />
+              Nice work — all tests passed.
+            </p>
+            <Link
+              to={`/workspace/${nextProblemId}`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-shadow hover:bg-emerald-700 hover:shadow-md"
+            >
+              Next problem
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       <PanelGroup direction="vertical" className="min-h-0 flex-1">
         <Panel defaultSize={65} minSize={30}>
